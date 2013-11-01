@@ -41,7 +41,7 @@ readImagesFromDirectory directory = do
 
 main :: IO ()
 main = do
-  images <- readImagesFromDirectory "/home/eric/Bitcasa/data/fractals"
-  let firstImage : others = images
+  let imageClosures = readImagesFromDirectory "/home/eric/Bitcasa/data/fractals"
+  firstImage : others <- imageClosures
   runIL $ writeImage "/home/eric/Downloads/fractal2.png" firstImage
   putStrLn "Done"
