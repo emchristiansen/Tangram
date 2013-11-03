@@ -6,7 +6,7 @@ version:             0.1.0.0
 -- synopsis:            
 -- description:         
 license:             MIT
-license-file:        LICENSE
+-- license-file:        LICENSE
 author:              Eric Christiansen             
 -- maintainer:          
 -- copyright:           
@@ -27,4 +27,5 @@ executable TangramHS
     filepath,
     pipes,
     pipes-concurrency,
+    async,
     repa-devil

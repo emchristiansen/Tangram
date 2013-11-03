@@ -1,73 +1,16 @@
 import Data.Array.Repa.IO.DevIL
-import System.Directory
-import System.FilePath.Posix
-import Data.Char
-import Control.Exception
 import Control.Monad
 import Data.Maybe
 import Pipes
+import qualified Pipes.Prelude as P
 import Pipes.Concurrent
 import Control.Concurrent (threadDelay)
-import System.IO.Error
-
--- https://www.fpcomplete.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions
-catchAny :: IO a -> (SomeException -> IO a) -> IO a
-catchAny = Control.Exception.catch
-
-removeIfExists :: FilePath -> IO ()
-removeIfExists fileName = removeFile fileName `catch` handleExists
-  where handleExists e
-          | isDoesNotExistError e = return ()
-          | otherwise = throwIO e
-
--- Just moves an image between two known folders.
-moveImage :: IL ()
-moveImage = do
-  image <- readImage "/home/eric/Bitcasa/data/fractals/murayama_14.jpg"
-  writeImage "/home/eric/Downloads/fractal.png" image
-
--- Checks if a filename is an image filename for some standard extensions.
-isImageFilename :: FilePath -> Bool
-isImageFilename filename = extension `elem` [".bmp", ".jpeg", ".jpg", ".png"]
- where extension = map toLower $ takeExtension filename
-
-imageFilesInDirectory :: FilePath -> IO [FilePath]
-imageFilesInDirectory directory = do
-  allFilenames <- getDirectoryContents directory
-  return $ map ((directory ++ "/") ++) $ filter isImageFilename allFilenames
-
-readImageSafe :: FilePath -> IO (Maybe Image)
-readImageSafe filename = do
-  putStrLn $ "Reading " ++ filename
-  catchAny (fmap Just (runIL (readImage filename))) $ \exception -> do
-  	putStrLn $ "Could not read image, skipping: " ++ filename
-  	return Nothing  
-
-maybeReadImages :: [FilePath] -> ListT IO (Maybe Image)
-maybeReadImages fileNames = do
-    fileName <- Select $ each fileNames
-    liftIO $ readImageSafe fileName
-
-flattenImageStream :: (Monad m) => ListT m (Maybe a) -> ListT m a
-flattenImageStream stream = do
-    ma <- stream
-    case ma of
-        Just a  -> return a
-        Nothing -> mzero
-
-readImages :: [FilePath] -> ListT IO Image
-readImages fileNames = flattenImageStream $ maybeReadImages fileNames
+import Data.Monoid
+import Data.Either
+import Control.Concurrent.Async
+import ImageIO
 
 -- Lazily reads all the images in a directory.
--- This fairly strange type is necessary to marry laziness and the possibility
--- an image won't load.
--- See this thread:
--- http://stackoverflow.com/questions/19735245/haskell-hiding-failures-in-lazy-io/19736305#19736305
-readImagesFromDirectory :: FilePath -> IO (ListT IO Image)
-readImagesFromDirectory directory = do
-  fileNames <- imageFilesInDirectory directory
-  return $ readImages fileNames
-
 directoryImageProvider :: FilePath -> Producer Image IO ()
 directoryImageProvider directory = do
   fileNames <- lift $ imageFilesInDirectory directory
@@ -75,36 +18,87 @@ directoryImageProvider directory = do
     maybeImage <- lift $ readImageSafe fileName
     each $ maybeToList maybeImage
 
-imageWriter :: Consumer Image IO ()
-imageWriter = do
-  lift $ putStrLn "Writing"
+imagePool :: Pipe Image Image IO ()
+imagePool = do
   image <- await
+  yield image
+
+data Tangram = Tangram Image
+
+-- This should be something like Pipe Image Tangram IO ()
+tangramMaker :: Pipe Image (Either Image Tangram) IO ()
+tangramMaker = do
+  image <- await
+  yield $ Left image
+  --yield $ Right $ Tangram image
+
+--imagePasser :: Pipe Image Image IO ()
+--imagePasser = undefined
+
+imageWriter :: Consumer Image IO ()
+imageWriter = forever $ do
+  image <- await
+  lift $ putStrLn "Writing"
   lift $ removeIfExists fileName
   lift $ runIL $ writeImage fileName image
-  lift $ threadDelay 200000  -- Wait 2 seconds
-  imageWriter
+  lift $ threadDelay 2000000  -- Wait 2 seconds
  where fileName = "/home/eric/Downloads/fractal2.png"
 
---acidRain = forever $ do
---    lift $ threadDelay 2000000  -- Wait 2 seconds
---    yield (Harm 1)
+takeLeftPipe :: Pipe (Either a b) a IO ()
+takeLeftPipe = P.map (\x -> lefts [x]) >-> P.concat
 
---readImagesFromDirectory :: FilePath -> IO [IO (Maybe Image)]
---readImagesFromDirectory directory = do
---  filenames <- imageFilesInDirectory directory
---  return $ map readImageSafe filenames
+takeRightPipe :: Pipe (Either a b) b IO ()
+takeRightPipe = P.map (\x -> rights [x]) >-> P.concat
 
---filterImages :: IO [IO (Maybe Image)] -> IO [IO [Image]]
---filterImages imageClosures = fmap (fmap (fmap maybeToList)) imageClosures
+displaySetter :: Consumer Tangram IO ()
+displaySetter = P.map (\(Tangram image) -> image) >-> imageWriter
 
 main :: IO ()
-main = do
+main = do  
   let provider = directoryImageProvider "/home/eric/Bitcasa/data/fractals"
-  let consumer = imageWriter
-  runEffect $ provider >-> consumer
-  --imageClosures <- readImagesFromDirectory "/home/eric/Bitcasa/data/fractals"
-  --let firstImage = next $ runEffect imageClosures
-  --firstImage : others <- imageClosures
-  --Just fI <- firstImage
-  --runIL $ writeImage "/home/eric/Downloads/fractal2.png" fI
+
+  (imagePoolOutput, imagePoolInput) <- spawn Single
+  (tangramFailureOutput, tangramFailureInput) <- spawn Unbounded
+  (tangramSuccessOutput, tangramSuccessInput) <- spawn Unbounded
+
+  let fetchImages = provider >-> toOutput imagePoolOutput
+
+  let imageSource = fromInput imagePoolInput
+  let tangramSink = toOutput $ tangramFailureOutput <> tangramSuccessOutput
+  let makeTangrams = imageSource >-> imagePool >-> tangramMaker >-> tangramSink
+
+  let recycleImages = fromInput tangramFailureInput >-> takeLeftPipe >-> toOutput imagePoolOutput
+
+  let displayTangrams = fromInput tangramSuccessInput >-> takeRightPipe >-> displaySetter
+
+  a <- async $ runEffect fetchImages
+  b <- async $ runEffect makeTangrams
+  c <- async $ runEffect recycleImages
+  d <- async $ runEffect displayTangrams
+
+  mapM_ wait [a, b, c, d]
+
+  --runEffect displayTangrams
+
+  --forkIO $ do runEffect $ provider >-> toOutput imagePoolOutput
+
+  --let foo = imageSource >-> imagePool >-> tangramMaker >-> tangramSink
+  --do runEffect $ foo  
+
+  --let foo2 = fromInput tangramImageInput >-> takeLeftPipe >-> toOutput imagePoolOutput
+  --runEffect foo2
+  
+  --let foo3 = fromInput tangramTangramInput >-> takeRightPipe >-> displaySetter
+
+  --let imagePoolRedirect = takeLeftPipe >-> toOutput imagePoolOutput
+  --let displaySetterRedirect = takeRightPipe >-> displaySetter
+  --let foo4 = imageSource >-> imagePool >-> tangramMaker >-> (imagePoolRedirect <> displaySetterRedirect)
+
+  --provider >-> imagePoolOutput
+
+
+  --let effect = provider >-> imagePool
+  --let maker = tangramMaker >-> splitP
+  --let consumer = imageWriter
+  --runEffect $ provider >-> consumer
   putStrLn "Done"
