@@ -25,4 +25,6 @@ executable TangramHS
     base ==4.6.*,
     directory,
     filepath,
+    pipes,
+    pipes-concurrency,
     repa-devil
