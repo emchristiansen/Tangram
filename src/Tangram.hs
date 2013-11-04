@@ -11,13 +11,13 @@ import Codec.Picture
 import ImageIO
 import PipeUtil
   
-data Tangram = Tangram DynamicImage
+data Tangram = Tangram ImageRGBA8
 
-type ImageProducer = Producer DynamicImage IO ()
+type ImageProducer = Producer ImageRGBA8 IO ()
 
-type ImagePool = Pipe DynamicImage DynamicImage IO ()
+type ImagePool = Pipe ImageRGBA8 ImageRGBA8 IO ()
 
-type TangramMaker = Pipe DynamicImage (Either DynamicImage Tangram) IO ()
+type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 Tangram) IO ()
 
 type DisplaySetter = Consumer Tangram IO ()
 
@@ -29,7 +29,7 @@ directoryImageProducer directory = do
     maybeImage <- lift $ readImageSafe fileName
     each $ maybeToList maybeImage
 
-debugImagePool :: [(Int, DynamicImage)] -> ImagePool
+debugImagePool :: [(Int, ImageRGBA8)] -> ImagePool
 debugImagePool agingImages = do
   image <- await
   let agingImages' = if imageUnknown then ((0, image) : agingImages) else agingImages
@@ -52,7 +52,7 @@ debugDisplaySetter :: FilePath -> DisplaySetter
 debugDisplaySetter filePath = forever $ do
   Tangram image <- await
   lift $ putStrLn "Writing"
-  lift $ savePngImage filePath image
+  lift $ writePng filePath image
   lift $ threadDelay 400000  -- Wait 2 seconds
 
 runSystem :: ImageProducer -> ImagePool -> TangramMaker -> DisplaySetter -> IO ()
