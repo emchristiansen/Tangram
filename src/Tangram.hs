@@ -1,4 +1,4 @@
-import Data.Array.Repa.IO.DevIL
+--import Data.Array.Repa.IO.DevIL
 import Control.Monad
 import Data.Maybe
 import Pipes
@@ -6,16 +6,18 @@ import Pipes.Concurrent
 import Control.Concurrent (threadDelay)
 import Data.Monoid
 import Control.Concurrent.Async
+import Data.List.Utils
+import Codec.Picture
 import ImageIO
 import PipeUtil
   
-data Tangram = Tangram Image
+data Tangram = Tangram DynamicImage
 
-type ImageProducer = Producer Image IO ()
+type ImageProducer = Producer DynamicImage IO ()
 
-type ImagePool = Pipe Image Image IO ()
+type ImagePool = Pipe DynamicImage DynamicImage IO ()
 
-type TangramMaker = Pipe Image (Either Image Tangram) IO ()
+type TangramMaker = Pipe DynamicImage (Either DynamicImage Tangram) IO ()
 
 type DisplaySetter = Consumer Tangram IO ()
 
@@ -26,6 +28,18 @@ directoryImageProducer directory = do
   for (each fileNames) $ \fileName -> do
     maybeImage <- lift $ readImageSafe fileName
     each $ maybeToList maybeImage
+
+debugImagePool :: [(Int, DynamicImage)] -> ImagePool
+debugImagePool agingImages = do
+  image <- await
+  let agingImages' = if imageUnknown then ((0, image) : agingImages) else agingImages
+  let head' @ (numUsages, image') = head agingImages'
+  --let agingImages'' = replace [head'] [(numUsages + 1, image')] agingImages'
+  --yield image'
+  --debugImagePool agingImages''
+  undefined
+ where imageUnknown = True
+
 
 -- This should be something like Pipe Image Tangram IO ()
 debugTangramMaker :: TangramMaker

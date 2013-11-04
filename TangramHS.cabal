@@ -28,4 +28,7 @@ executable TangramHS
     pipes,
     pipes-concurrency,
     async,
-    repa-devil
+    MissingH,
+    JuicyPixels,
+    repa-devil,
+    repa
