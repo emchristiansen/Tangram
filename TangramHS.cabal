@@ -18,7 +18,7 @@ executable TangramHS
   hs-source-dirs: src
   main-is: Tangram.hs
 
-  ghc-options: -Wall
+  ghc-options: -Wall -XFlexibleInstances
 
   -- other-modules:       
   build-depends: 
@@ -33,4 +33,5 @@ executable TangramHS
     JuicyPixels,
     bytestring,
     repa-devil,
+    containers,
     repa

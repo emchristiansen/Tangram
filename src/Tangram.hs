@@ -10,6 +10,9 @@ import Data.List.Utils
 import Codec.Picture
 import ImageIO
 import PipeUtil
+import qualified System.Random as R
+import qualified Data.Set as Set
+import Text.Printf
   
 data Tangram = Tangram ImageRGBA8
 
@@ -29,24 +32,84 @@ directoryImageProducer directory = do
     maybeImage <- lift $ readImageSafe fileName
     each $ maybeToList maybeImage
 
-debugImagePool :: [(Int, ImageRGBA8)] -> ImagePool
-debugImagePool agingImages = do
-  image <- await
-  let agingImages' = if imageUnknown then ((0, image) : agingImages) else agingImages
-  let head' @ (numUsages, image') = head agingImages'
-  --let agingImages'' = replace [head'] [(numUsages + 1, image')] agingImages'
-  --yield image'
-  --debugImagePool agingImages''
-  undefined
- where imageUnknown = True
+--debugImagePool :: [(Int, ImageRGBA8)] -> ImagePool
+--debugImagePool agingImages = do
+--  lift $ putStrLn $ show $ map fst agingImages
+--  image <- await
+--  let agingImages' = if imageUnknown image then ((0, image) : agingImages) else agingImages
+--  let head' @ (numUsages, image') = head agingImages'
+--  let agingImages'' = replace [head'] [(numUsages + 1, image')] agingImages'
+--  yield image'
+--  debugImagePool agingImages''
+-- where imageUnknown image = not $ elem image $ map snd agingImages
 
+randomBool :: IO Bool
+randomBool = do
+  random <- R.getStdGen
+  return $ even $ fst $ R.next random
+
+-- If there are any rejected images, yield a rejected image with 50%
+-- probability and an unknown image with 50% probability.
+-- Otherwise yield an unknown image.
+myImagePool :: [ImageRGBA8] -> [ImageRGBA8] -> [ImageRGBA8] -> ImagePool
+myImagePool freshImages rejectedImages knownImages = do
+  lift $ printf "length freshImages: %d\n" $ length freshImages
+  lift $ printf "length rejectedImages: %d\n" $ length rejectedImages
+  lift $ printf "length knownImages: %d\n" $ length knownImages
+  case null freshImages of
+    -- Make sure we have at least one fresh image.
+    True -> do
+      image <- await
+      case image `elem` knownImages of
+        True -> myImagePool freshImages (image : rejectedImages) knownImages
+        False -> myImagePool (image : freshImages) rejectedImages (image :knownImages)
+    False -> case rejectedImages of
+      -- If we haven't accumulated any rejects, we yield a fresh image.
+      [] -> do
+        let freshHead : freshTail = freshImages
+        yield freshHead
+        myImagePool freshTail rejectedImages knownImages
+      -- If we have rejects, we flip a coin to determine whether to yield
+      -- a reject or a new image.
+      rejectedHead : rejectedTail -> do
+        yieldRejected <- lift $ randomBool
+        case yieldRejected of
+          True -> do
+            yield rejectedHead
+            myImagePool freshImages rejectedTail knownImages
+          False -> do
+            let freshHead : freshTail = freshImages
+            yield freshHead
+            myImagePool freshTail rejectedImages knownImages
+
+
+  --case null rejectedImages of
+  --  False -> 
+  --if null rejectedImages
+
+  --switch <- randomBool
+
+
+--debugImagePool :: [ImageRGBA8] -> [(Int, ImageRGBA8)] -> ImagePool
+--debugImagePool usedImages unusedImages = do
+--  --lift $ putStrLn $ show $ map fst agingImages
+--  image <- await
+--  let agingImages' = if imageUnknown image then ((0, image) : agingImages) else agingImages
+--  let head' @ (numUsages, image') = head agingImages'
+--  let agingImages'' = replace [head'] [(numUsages + 1, image')] agingImages'
+--  yield image'
+--  debugImagePool agingImages''
+-- where imageUnknown image = not $ elem image $ map snd agingImages
 
 -- This should be something like Pipe Image Tangram IO ()
 debugTangramMaker :: TangramMaker
 debugTangramMaker = forever $ do
   image <- await
-  --yield $ Left image
-  yield $ Right $ Tangram image
+  switch <- lift $ randomBool
+  case switch of
+    False -> yield $ Left image
+    True -> yield $ Right $ Tangram image
+  
 
 debugDisplaySetter :: FilePath -> DisplaySetter
 debugDisplaySetter filePath = forever $ do
@@ -57,9 +120,9 @@ debugDisplaySetter filePath = forever $ do
 
 runSystem :: ImageProducer -> ImagePool -> TangramMaker -> DisplaySetter -> IO ()
 runSystem imageProducer imagePool tangramMaker displaySetter = do
-  (imagePoolOutput, imagePoolInput) <- spawn Single
+  (imagePoolOutput, imagePoolInput) <- spawn Unbounded
   (tangramFailureOutput, tangramFailureInput) <- spawn Unbounded
-  (tangramSuccessOutput, tangramSuccessInput) <- spawn Single  
+  (tangramSuccessOutput, tangramSuccessInput) <- spawn Unbounded  
 
   let fetchImages = imageProducer >-> toOutput imagePoolOutput
 
@@ -83,7 +146,8 @@ runSystem imageProducer imagePool tangramMaker displaySetter = do
 main :: IO ()
 main = do  
   let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals"
-  let imagePool = cat
+  --let imagePool = cat
+  let imagePool = myImagePool [] [] []
   let tangramMaker = debugTangramMaker
   let displaySetter = debugDisplaySetter "/home/eric/Downloads/tangram.png"
 

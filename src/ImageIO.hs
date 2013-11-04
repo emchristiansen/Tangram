@@ -15,6 +15,13 @@ import Text.Printf
 
 type ImageRGBA8 = Image PixelRGBA8
 
+instance Eq (Image PixelRGBA8) where
+  (==) left right = widthMatch && heightMatch && dataMatch
+   where 
+   	widthMatch = imageWidth left == imageWidth right
+   	heightMatch = imageHeight left == imageHeight right
+   	dataMatch = imageData left == imageData right
+
 -- https://www.fpcomplete.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions
 --catchAny :: IO a -> (SomeException -> IO a) -> IO a
 --catchAny = Control.Exception.catch
