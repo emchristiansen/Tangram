@@ -52,9 +52,8 @@ debugDisplaySetter :: FilePath -> DisplaySetter
 debugDisplaySetter filePath = forever $ do
   Tangram image <- await
   lift $ putStrLn "Writing"
-  --lift $ removeIfExists filePath
-  --lift $ runIL $ writeImage filePath image
-  lift $ threadDelay 1000000  -- Wait 2 seconds
+  lift $ savePngImage filePath image
+  lift $ threadDelay 400000  -- Wait 2 seconds
 
 runSystem :: ImageProducer -> ImagePool -> TangramMaker -> DisplaySetter -> IO ()
 runSystem imageProducer imagePool tangramMaker displaySetter = do
