@@ -30,5 +30,6 @@ executable TangramHS
     async,
     MissingH,
     JuicyPixels,
+    bytestring,
     repa-devil,
     repa
