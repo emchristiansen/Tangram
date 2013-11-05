@@ -57,7 +57,7 @@ directoryImageProducer directory usedFiles = do
 
 randomBool :: IO Bool
 randomBool = do
-  random <- R.getStdGen
+  random <- R.newStdGen
   return $ even $ fst $ R.next random
 
 -- If there are any rejected images, yield a rejected image with 50%
@@ -119,8 +119,12 @@ debugTangramMaker = forever $ do
   image <- await
   switch <- lift $ randomBool
   case switch of
-    False -> yield $ Left image
-    True -> yield $ Right $ Tangram image
+    False -> do
+      lift $ putStrLn "Simulating failure"
+      yield $ Left image
+    True -> do
+      lift $ putStrLn "Simulating success"
+      yield $ Right $ Tangram image
   
 
 debugDisplaySetter :: FilePath -> DisplaySetter
@@ -158,8 +162,8 @@ runSystem imageProducer imagePool tangramMaker displaySetter = do
 main :: IO ()
 main = do  
   let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals" []
-  let imagePool = cat
-  --let imagePool = myImagePool [] [] []
+  --let imagePool = cat
+  let imagePool = myImagePool [] [] []
   let tangramMaker = debugTangramMaker
   let displaySetter = debugDisplaySetter "/home/eric/Downloads/tangram.png"
 
