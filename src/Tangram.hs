@@ -25,12 +25,24 @@ type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 Tangram) IO ()
 type DisplaySetter = Consumer Tangram IO ()
 
 -- Lazily reads all the images in a directory.
-directoryImageProducer :: FilePath -> ImageProducer
-directoryImageProducer directory = do
-  fileNames <- lift $ imageFilesInDirectory directory
-  for (each fileNames) $ \fileName -> do
-    maybeImage <- lift $ readImageSafe fileName
-    each $ maybeToList maybeImage
+-- It even selects the next path lazily (though not super efficiently), so
+-- the user can drop in new files while the program is running and have them
+-- picked up by this producer.
+directoryImageProducer :: FilePath -> [FilePath] -> ImageProducer
+directoryImageProducer directory usedFiles = do
+  allPaths <- lift $ imageFilesInDirectory directory
+  case listToMaybe (fresh allPaths) of 
+    Nothing -> return ()
+    Just freshFile -> do
+      maybeImage <- lift $ readImageSafe freshFile
+      case maybeImage of 
+        Nothing -> recurse $ freshFile : usedFiles
+        Just image -> do
+          yield image
+          recurse $ freshFile : usedFiles
+ where 
+  fresh = filter (not . (`elem` usedFiles))
+  recurse = directoryImageProducer directory
 
 --debugImagePool :: [(Int, ImageRGBA8)] -> ImagePool
 --debugImagePool agingImages = do
@@ -120,9 +132,9 @@ debugDisplaySetter filePath = forever $ do
 
 runSystem :: ImageProducer -> ImagePool -> TangramMaker -> DisplaySetter -> IO ()
 runSystem imageProducer imagePool tangramMaker displaySetter = do
-  (imagePoolOutput, imagePoolInput) <- spawn Unbounded
+  (imagePoolOutput, imagePoolInput) <- spawn Single
   (tangramFailureOutput, tangramFailureInput) <- spawn Unbounded
-  (tangramSuccessOutput, tangramSuccessInput) <- spawn Unbounded  
+  (tangramSuccessOutput, tangramSuccessInput) <- spawn Single
 
   let fetchImages = imageProducer >-> toOutput imagePoolOutput
 
@@ -145,9 +157,9 @@ runSystem imageProducer imagePool tangramMaker displaySetter = do
 
 main :: IO ()
 main = do  
-  let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals"
-  --let imagePool = cat
-  let imagePool = myImagePool [] [] []
+  let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals" []
+  let imagePool = cat
+  --let imagePool = myImagePool [] [] []
   let tangramMaker = debugTangramMaker
   let displaySetter = debugDisplaySetter "/home/eric/Downloads/tangram.png"
 
