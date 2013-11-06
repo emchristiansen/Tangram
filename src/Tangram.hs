@@ -44,17 +44,6 @@ directoryImageProducer directory usedFiles = do
   fresh = filter (not . (`elem` usedFiles))
   recurse = directoryImageProducer directory
 
---debugImagePool :: [(Int, ImageRGBA8)] -> ImagePool
---debugImagePool agingImages = do
---  lift $ putStrLn $ show $ map fst agingImages
---  image <- await
---  let agingImages' = if imageUnknown image then ((0, image) : agingImages) else agingImages
---  let head' @ (numUsages, image') = head agingImages'
---  let agingImages'' = replace [head'] [(numUsages + 1, image')] agingImages'
---  yield image'
---  debugImagePool agingImages''
--- where imageUnknown image = not $ elem image $ map snd agingImages
-
 randomBool :: IO Bool
 randomBool = do
   random <- R.newStdGen
