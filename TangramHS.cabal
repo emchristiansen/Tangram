@@ -12,16 +12,20 @@ author:              Eric Christiansen
 -- copyright:           
 -- category:            
 build-type:          Simple
-cabal-version:       >=1.8
+cabal-version:       >=1.16
 
-executable TangramHS
-  hs-source-dirs: src
-  main-is: Tangram.hs
+library
+  hs-source-dirs:   src
 
-  ghc-options: -Wall -XFlexibleInstances
+  default-extensions: FlexibleInstances
 
-  -- other-modules:       
-  build-depends: 
+  default-language: Haskell2010
+
+  exposed-modules:
+    ImageIO,
+    PipeUtil
+
+  build-depends:
     base ==4.6.*,
     directory,
     filepath,
@@ -36,3 +40,44 @@ executable TangramHS
     containers,
     multimap,
     repa
+
+executable TangramHS
+  hs-source-dirs: bin
+  main-is: Tangram.hs
+
+  ghc-options: -Wall
+
+  default-extensions: FlexibleInstances
+
+  default-language: Haskell2010
+
+  -- other-modules:       
+  build-depends: 
+    TangramHS,
+    base ==4.6.*,
+    directory,
+    filepath,
+    pipes,
+    pipes-concurrency,
+    async,
+    MissingH,
+    random,
+    JuicyPixels,
+    bytestring,
+    repa-devil,
+    containers,
+    multimap,
+    repa
+
+test-suite TestTangramHS
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Test.hs
+  default-extensions: FlexibleInstances
+  default-language: Haskell2010
+  build-depends: 
+    TangramHS,
+    base == 4.*, 
+    HTF,
+    QuickCheck,
+    JuicyPixels
