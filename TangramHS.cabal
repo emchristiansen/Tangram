@@ -34,4 +34,5 @@ executable TangramHS
     bytestring,
     repa-devil,
     containers,
+    multimap,
     repa
