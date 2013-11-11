@@ -1,12 +1,15 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import Test.Framework
-import Test.QuickCheck
+--import Test.QuickCheck
 import Codec.Picture
 import Control.Applicative
-import ImageIO
+--import ImageIO
 import TangramMisc
 import qualified Data.MultiMap as MM
+import qualified Data.Map as M
+import Control.Monad
 
 instance Arbitrary PixelRGBA8 where
   arbitrary = PixelRGBA8 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
@@ -14,11 +17,8 @@ instance Arbitrary PixelRGBA8 where
 instance Arbitrary (Image PixelRGBA8) where
   arbitrary = generateImage <$> pixel <*> dimension <*> dimension
    where 
-   	pixel = (\pixel -> \_ _ -> pixel) <$> arbitrary
+   	pixel = (\pixel' -> \_ _ -> pixel') <$> arbitrary
    	dimension = choose (500, 1000)
-
-instance Show (Image PixelRGBA8) where
-  show image = "Show image"
 
 data ImageDimensions = ImageDimensions Int Int deriving Show
 
@@ -34,9 +34,27 @@ prop_legalCrops :: ImageDimensions -> Bool
 prop_legalCrops (ImageDimensions width height) = 
   length (legalCrops width height) > 0
 
+test_legalCrops :: IO ()
+test_legalCrops = do
+  let crops = legalCrops 500 600
+  --mapM_ (putStrLn . show) crops
+  putStrLn $ show $ length crops
+
 prop_legalRescalings :: ImageDimensions -> Bool
 prop_legalRescalings (ImageDimensions width height) = 
   length (legalRescalings width height) > 0
+
+test_legalTangramSizes :: IO ()
+test_legalTangramSizes = do
+  imageLeft <- (liftM head) $ sample' arbitrary
+  imageRight <- (liftM head) $ sample' arbitrary
+  let leftSizes = legalTangramSizes (Leaf imageLeft)
+  let rightSizes = legalTangramSizes (Leaf imageRight)
+  putStrLn $ show $ count leftSizes
+  putStrLn $ show $ count rightSizes
+  let sizes = legalTangramSizes (Horizontal (Leaf imageLeft) (Leaf imageRight))
+  putStrLn $ show $ count sizes
+ where count sizes = length $ M.assocs $ MM.toMap $ fst sizes
 
 --prop_legalImageSizes :: ImageDimension -> ImageDimension -> Bool
 --prop_legalImageSizes (ImageDimension width) (ImageDimension height) =
@@ -48,17 +66,19 @@ prop_legalRescalings (ImageDimensions width height) =
 --  sizes = legalTangramSizes (Leaf image)
 --  numSizes = length $ MM.keys $ fst sizes
 
-myReverse :: [a] -> [a]
-myReverse []     = []
-myReverse [x]    = [x]
-myReverse (x:xs) = (myReverse xs) ++ [x]
+--myReverse :: [a] -> [a]
+--myReverse []     = []
+--myReverse [x]    = [x]
+--myReverse (x:xs) = (myReverse xs) ++ [x]
 
-test_nonEmpty = do assertEqual [1] (myReverse [1])
-                   assertEqual [3,2,1] (myReverse [1,2,3])
+--test_nonEmpty = do assertEqual [1] (myReverse [1])
+--                   putStrLn "here"
+--                   assertEqual [3,2,1] (myReverse [1,2,3])
 
-test_empty = assertEqual ([] :: [Int]) (myReverse [])
+--test_empty = assertEqual ([] :: [Int]) (myReverse [])
 
-prop_reverse :: [Int] -> Bool
-prop_reverse xs = xs == (myReverse (myReverse xs))
+--prop_reverse :: [Int] -> Bool
+--prop_reverse xs = xs == (myReverse (myReverse xs))
 
+main :: IO ()
 main = htfMain htf_thisModulesTests

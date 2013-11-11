@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module TangramMisc where
 
 import Control.Monad
@@ -7,16 +9,16 @@ import Pipes.Concurrent
 import Control.Concurrent (threadDelay)
 import Data.Monoid
 import Control.Concurrent.Async
-import Data.List.Utils
+--import Data.List.Utils
 import Data.List
 import Codec.Picture
 import ImageIO
 import PipeUtil
 import qualified System.Random as R
-import qualified Data.Set as Set
+--import qualified Data.Set as Set
 import Text.Printf
 import Data.Tuple
-import qualified Data.Map as M
+--import qualified Data.Map as M
 import qualified Data.MultiMap as MM
 import Control.Applicative
   
@@ -31,24 +33,31 @@ type DisplaySetter = Consumer Tangram IO ()
 -- The larger dimension of a resized component image must be at 
 -- least this many pixels.
 -- We don't want tiny images.
-minLargerDimension = 300 :: Int
+minLargerDimension :: Int
+minLargerDimension = 300
 -- The smaller dimension of a resized component image may not be more 
 -- than this many pixels.
 -- We don't want one image taking up the whole tangram.
-maxSmallerDimension = 600 :: Int
+maxSmallerDimension :: Int
+maxSmallerDimension = 600
 --minRelativeSize = 0.5
 -- We may not change the aspect ratio of an image by more than this constant.
 -- We want to keep image cropping to an absolute minimum.
-maxAspectWarp = 1.05 :: Double
+maxAspectWarp :: Double
+maxAspectWarp = 1.02
 -- Half the width of the pixel border between images.
-halfBorderWidth = 1 :: Int
+halfBorderWidth :: Int
+halfBorderWidth = 1
+
+instance Show (Image PixelRGBA8) where
+  show _ = "Show image"
 
 -- We're restricting ourselves to tangrams which can be constructed by
 -- either stacking tangrams vertically or putting them side-by-side.
 data Tangram = 
   Vertical Tangram Tangram | 
   Horizontal Tangram Tangram |
-  Leaf ImageRGBA8
+  Leaf ImageRGBA8 deriving Show
 
 legalCrops :: Int -> Int -> [(Int, Int)]
 legalCrops width height = nub $ sort crops
@@ -57,18 +66,21 @@ legalCrops width height = nub $ sort crops
   trueAspect = aspect width height
   minAspect = trueAspect / maxAspectWarp
   maxAspect = trueAspect * maxAspectWarp
-  legalAspect width height = 
-    (aspect width height <= maxAspect) && (aspect width height >= minAspect)
+  legalAspect width' height' = 
+    (aspect width' height' <= maxAspect) && (aspect width' height' >= minAspect)
   legalWidths = filter (\width' -> legalAspect width' height) [0 .. width]
   legalHeights = filter (\height' -> legalAspect width height') [0 .. height]
-  crops = (zip legalWidths (repeat height)) ++ (zip (repeat width) legalHeights) 
+  crops = 
+    ((,) <$> legalWidths <*> [height]) ++ ((,) <$> [width] <*> legalHeights) 
 
 legalRescalingsHelper :: Int -> Int -> [(Int, Int)]
 legalRescalingsHelper smallerDimension largerDimension = nub $ sort rescalings
  where
   divide denominator = (/ fromIntegral denominator) . fromIntegral
+  smallerScalingFactors :: [Double]
   smallerScalingFactors =
     map (divide smallerDimension) [maxSmallerDimension .. smallerDimension]  
+  largerScalingFactors :: [Double]
   largerScalingFactors = 
     map (divide largerDimension) [minLargerDimension .. largerDimension]
   rescale factor = 
