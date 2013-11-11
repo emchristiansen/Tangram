@@ -21,9 +21,12 @@ library
 
   default-language: Haskell2010
 
+  ghc-options: -Wall -auto-all -caf-all -fforce-recomp
+
   exposed-modules:
     ImageIO,
-    PipeUtil
+    PipeUtil,
+    TangramMisc
 
   build-depends:
     base ==4.6.*,
@@ -45,7 +48,7 @@ executable TangramHS
   hs-source-dirs: bin
   main-is: Tangram.hs
 
-  ghc-options: -Wall
+  ghc-options: -Wall -auto-all -caf-all -fforce-recomp
 
   default-extensions: FlexibleInstances
 
@@ -73,6 +76,7 @@ test-suite TestTangramHS
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Test.hs
+  ghc-options: -Wall -prof -auto-all -caf-all -fforce-recomp
   default-extensions: FlexibleInstances
   default-language: Haskell2010
   build-depends: 
@@ -80,4 +84,5 @@ test-suite TestTangramHS
     base == 4.*, 
     HTF,
     QuickCheck,
-    JuicyPixels
+    JuicyPixels,
+    multimap
