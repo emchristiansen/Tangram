@@ -18,10 +18,12 @@ import qualified System.Random as R
 --import qualified Data.Set as Set
 import Text.Printf
 import Data.Tuple
---import qualified Data.Map as M
+import qualified Data.Map as M
 import qualified Data.MultiMap as MM
 import Control.Applicative
-  
+import Control.Monad.Memo
+import Data.Function  
+
 type ImageProducer = Producer ImageRGBA8 IO ()
 
 type ImagePool = Pipe ImageRGBA8 ImageRGBA8 IO ()
@@ -50,14 +52,22 @@ halfBorderWidth :: Int
 halfBorderWidth = 1
 
 instance Show (Image PixelRGBA8) where
-  show _ = "Show image"
+  show image = show $ (imageWidth image, imageHeight image)
 
 -- We're restricting ourselves to tangrams which can be constructed by
 -- either stacking tangrams vertically or putting them side-by-side.
 data Tangram = 
-  Vertical Tangram Tangram | 
-  Horizontal Tangram Tangram |
-  Leaf ImageRGBA8 deriving Show
+  Vertical !Tangram !Tangram | 
+  Horizontal !Tangram !Tangram |
+  Leaf !ImageRGBA8 deriving (Show, Eq, Ord)
+
+componentImages :: Tangram -> [ImageRGBA8]
+componentImages (Vertical top bottom) = 
+  (componentImages top) ++ (componentImages bottom)
+componentImages (Horizontal left right) = 
+  (componentImages left) ++ (componentImages right)  
+componentImages (Leaf image) = [image]
+
 
 legalCrops :: Int -> Int -> [(Int, Int)]
 legalCrops width height = nub $ sort crops
@@ -111,6 +121,9 @@ mkTangramSizes sizes = (widthToHeightsMap, heightToWidthsMap)
   widthToHeightsMap = MM.fromList sizes
   heightToWidthsMap = MM.fromList $ map swap sizes
 
+numSizes :: TangramSizes -> Int
+numSizes tangramSizes = length $ M.assocs $ MM.toMap $ fst tangramSizes
+
 -- Creates a new map where the keys are the intersection of the keys of
 -- the map, and the values are all possible sums of the values from either
 -- map.
@@ -123,25 +136,105 @@ addDimensions left right = concatMap keyValueTuples keys
   values key = nub $ sort $ (+) <$> left MM.! key <*> right MM.! key
   keyValueTuples key = (,) <$> [key] <*> values key
 
-legalTangramSizes :: Tangram -> TangramSizes
+fibm :: MonadMemo Int Int m => Int -> m Int
+fibm 0 = return 0
+fibm 1 = return 1
+fibm n = do
+  n1 <- memo fibm (n-1)
+  n2 <- memo fibm (n-2)
+  return (n1+n2)
 
-legalTangramSizes (Leaf image) = mkTangramSizes $ map addBorder sizes
+x :: Int
+x = startEvalMemo (fibm 10)
+
+legalTangramSizes :: MonadMemo Tangram TangramSizes m => Tangram -> m TangramSizes
+
+legalTangramSizes (Leaf image) = return $ mkTangramSizes $ map addBorder sizes
  where
   addBorder (width, height) = 
     (width + 2 * halfBorderWidth, height + 2 * halfBorderWidth)
   sizes = legalImageSizes (imageWidth image) (imageHeight image)
 
-legalTangramSizes (Vertical top bottom) = 
-  mkTangramSizes $ addDimensions topWidthToHeightsMap bottomWidthToHeightsMap
- where
-  topWidthToHeightsMap = fst $ legalTangramSizes top
-  bottomWidthToHeightsMap = fst $ legalTangramSizes bottom
+--legalTangramSizes (Vertical top bottom) = undefined
 
-legalTangramSizes (Horizontal left right) = 
-  mkTangramSizes $ map swap $ addDimensions leftHeightToWidthsMap rightHeightToWidthsMap
+legalTangramSizes (Vertical top bottom) = do
+  topSizes <- memo legalTangramSizes top
+  bottomSizes <- memo legalTangramSizes bottom
+  return $ mkTangramSizes $ addDimensions (fst topSizes) (fst bottomSizes)
+
+legalTangramSizes (Horizontal left right) = do
+  leftSizes <- memo legalTangramSizes left
+  rightSizes <- memo legalTangramSizes right
+  let swappedSizes = addDimensions (snd leftSizes) (snd rightSizes)
+  return $ mkTangramSizes $ map swap swappedSizes
+
+--legalTangramSizes (Vertical top bottom) = 
+--  mkTangramSizes $ addDimensions topWidthToHeightsMap bottomWidthToHeightsMap
+-- where
+--  topWidthToHeightsMap = fst $ legalTangramSizes top
+--  bottomWidthToHeightsMap = fst $ legalTangramSizes bottom
+
+--legalTangramSizes (Horizontal left right) = 
+--  mkTangramSizes $ map swap $ addDimensions leftHeightToWidthsMap rightHeightToWidthsMap
+-- where
+--  leftHeightToWidthsMap = snd $ legalTangramSizes left
+--  rightHeightToWidthsMap = snd $ legalTangramSizes right
+
+type SizedTangram = (Tangram, TangramSizes)
+
+-- All new consistent tangrams which can be produced by combining pairs of
+-- existing tangrams.
+pairTangrams :: MonadMemo Tangram TangramSizes m => [Tangram] -> m [Tangram]
+pairTangrams components = do
+  let pairs = filter (uncurry (<)) $ (,) <$> components <*> components
+  let combinations = [uncurry Vertical, uncurry Horizontal] <*> pairs :: [Tangram]
+  filterM consistent $ filter noDuplicates $ filter novel combinations
  where
-  leftHeightToWidthsMap = snd $ legalTangramSizes left
-  rightHeightToWidthsMap = snd $ legalTangramSizes right
+  novel :: Tangram -> Bool
+  novel tangram = not $ tangram `elem` components
+  noDuplicates :: Tangram -> Bool
+  noDuplicates tangram = 
+    length (componentImages tangram) == 
+      length (nub $ sort $ componentImages tangram)
+  consistent :: MonadMemo Tangram TangramSizes m => Tangram -> m Bool
+  consistent = liftM ((> 0) . numSizes) . memo legalTangramSizes
+
+-- All tangrams which can be produced from the given tangrams though at most
+-- one pairing.
+iterateTangrams :: MonadMemo Tangram TangramSizes m => [Tangram] -> m [Tangram]
+iterateTangrams components = 
+  liftM2 (++) (return components) (pairTangrams components)
+
+-- Repeatedly performs a monadic computation until it hits a fixed point,
+-- and returns the fixed point.
+mfix :: (Eq a, Monad m) => (a -> m a) -> m a -> m a
+mfix function monadicInput = do
+  input <- monadicInput
+  output <- function input
+  case input == output of
+    True -> return input
+    False -> mfix function $ return output
+
+-- All tangrams which can be produced from a given finite list of images.
+allTangrams :: MonadMemo Tangram TangramSizes m => [ImageRGBA8] -> m [Tangram]
+allTangrams images = mfix iterateTangrams $ return $ map Leaf images
+
+--allTangramsStream images =
+--  map allTangrams $ inits images
+
+  --fix iterateTangrams $ map Leaf images
+
+-- All consistent tangrams which can be produced from a collection
+-- of existing tangrams.
+--allTangrams :: [SizedTangram] -> [SizedTangram]
+--allTangrams components = undefined
+-- where
+
+
+--allTangramsStream :: [ImageRGBA8] -> [(Tangram, TangramSizes)]
+--allTangramsStream images = undefined
+-- where
+--  leafs = map Leaf images
 
 -- Lazily reads all the images in a directory.
 -- It even selects the next path lazily (though not super efficiently), so
@@ -215,6 +308,8 @@ debugTangramMaker = forever $ do
       lift $ putStrLn "Simulating success"
       yield $ Right $ Leaf image
   
+--myTangramMaker :: TangramMaker
+--myTangramMaker = forever $ do  
 
 debugDisplaySetter :: FilePath -> DisplaySetter
 debugDisplaySetter filePath = forever $ do

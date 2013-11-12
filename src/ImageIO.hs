@@ -10,6 +10,7 @@ import Data.Char
 import Codec.Picture
 import Codec.Picture.Types
 import Text.Printf
+import Control.Arrow ((&&&))
 --import Data.ByteString.Lazy (toStrict)
 --import System.IO
 --import Control.Concurrent (threadDelay)
@@ -17,12 +18,14 @@ import Text.Printf
 
 type ImageRGBA8 = Image PixelRGBA8
 
+-- TODO: Surely I don't need this given I have defined Ord below.
 instance Eq (Image PixelRGBA8) where
-  (==) left right = widthMatch && heightMatch && dataMatch
-   where 
-   	widthMatch = imageWidth left == imageWidth right
-   	heightMatch = imageHeight left == imageHeight right
-   	dataMatch = imageData left == imageData right
+  left == right = properties left == properties right
+   where properties = imageWidth &&& imageHeight &&& imageData
+
+instance Ord (Image PixelRGBA8) where
+  left `compare` right = properties left `compare` properties right
+   where properties = imageWidth &&& imageHeight &&& imageData
 
 -- https://www.fpcomplete.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions
 --catchAny :: IO a -> (SomeException -> IO a) -> IO a

@@ -10,6 +10,7 @@ import TangramMisc
 import qualified Data.MultiMap as MM
 import qualified Data.Map as M
 import Control.Monad
+import Control.Monad.Memo
 
 instance Arbitrary PixelRGBA8 where
   arbitrary = PixelRGBA8 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
@@ -44,17 +45,43 @@ prop_legalRescalings :: ImageDimensions -> Bool
 prop_legalRescalings (ImageDimensions width height) = 
   length (legalRescalings width height) > 0
 
-test_legalTangramSizes :: IO ()
-test_legalTangramSizes = do
-  imageLeft <- (liftM head) $ sample' arbitrary
-  imageRight <- (liftM head) $ sample' arbitrary
-  let leftSizes = legalTangramSizes (Leaf imageLeft)
-  let rightSizes = legalTangramSizes (Leaf imageRight)
-  putStrLn $ show $ count leftSizes
-  putStrLn $ show $ count rightSizes
-  let sizes = legalTangramSizes (Horizontal (Leaf imageLeft) (Leaf imageRight))
-  putStrLn $ show $ count sizes
- where count sizes = length $ M.assocs $ MM.toMap $ fst sizes
+--test_legalTangramSizes_memo :: IO ()
+--test_legalTangramSizes_memo = do
+--  image <- liftM head $ sample' arbitrary
+--  putStrLn $ show $ map numSizes $ startEvalMemo $ replicateM 20 $ legalTangramSizes $ Leaf image
+
+--test_legalTangramSizes :: IO ()
+--test_legalTangramSizes = do
+--  imageLeft <- (liftM head) $ sample' arbitrary
+--  imageRight <- (liftM head) $ sample' arbitrary
+--  let leftSizes = startEvalMemo $ legalTangramSizes (Leaf imageLeft)
+--  let rightSizes = startEvalMemo $ legalTangramSizes (Leaf imageRight)
+--  putStrLn $ show $ numSizes leftSizes
+--  putStrLn $ show $ numSizes rightSizes
+--  let sizes = startEvalMemo $ legalTangramSizes (Horizontal (Leaf imageLeft) (Leaf imageRight))
+--  putStrLn $ show $ numSizes sizes
+
+--test_iterateTangrams :: IO ()
+--test_iterateTangrams = do
+--  images <- replicateM 2 $ liftM head $ sample' arbitrary
+--  let tangrams = startEvalMemo $ iterateTangrams $ map Leaf images
+--  putStrLn $ show $ length tangrams
+--  mapM_ (putStrLn . show) tangrams
+--  let tangrams' = startEvalMemo $ iterateTangrams tangrams
+--  putStrLn $ show $ length tangrams'
+--  mapM_ (putStrLn . show) tangrams'
+--  let tangrams'' = startEvalMemo $ iterateTangrams tangrams'
+--  putStrLn $ show $ length tangrams''
+--  mapM_ (putStrLn . show) tangrams''
+
+--test_allTangrams :: IO ()
+--test_allTangrams = do
+--  images <- replicateM 5 $ liftM head $ sample' arbitrary
+--  let tangrams = startEvalMemo $ allTangrams images
+--  putStrLn "Start"
+--  --putStrLn $ show $ length tangrams
+--  mapM_ (putStrLn . show) tangrams
+--  putStrLn "Done"
 
 --prop_legalImageSizes :: ImageDimension -> ImageDimension -> Bool
 --prop_legalImageSizes (ImageDimension width) (ImageDimension height) =
