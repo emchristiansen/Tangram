@@ -6,11 +6,14 @@ import Test.Framework
 import Codec.Picture
 import Control.Applicative
 --import ImageIO
-import TangramMisc
 import qualified Data.MultiMap as MM
 import qualified Data.Map as M
 import Control.Monad
 import Control.Monad.Memo
+
+import System
+import TangramMakerUtil
+import BruteTangramMaker
 
 instance Arbitrary PixelRGBA8 where
   arbitrary = PixelRGBA8 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary

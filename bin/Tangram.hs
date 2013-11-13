@@ -11,7 +11,7 @@
 --import Codec.Picture
 --import ImageIO
 --import PipeUtil
-import TangramMisc
+import System
 --import qualified System.Random as R
 --import qualified Data.Set as Set
 --import Text.Printf
@@ -24,7 +24,7 @@ main :: IO ()
 main = do  
   let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals" []
   --let imagePool = cat
-  let imagePool = myImagePool [] [] []
+  let imagePool = mixingImagePool [] [] []
   let tangramMaker = debugTangramMaker
   let displaySetter = debugDisplaySetter "/home/eric/Downloads/tangram.png"
 

@@ -1,8 +1,30 @@
 module BruteTangramMaker where
 
+import Control.Monad
+import Data.Maybe
+import Pipes
+import Pipes.Concurrent
+import Control.Concurrent (threadDelay)
+import Data.Monoid
+import Control.Concurrent.Async
+--import Data.List.Utils
+import Data.List
+import Codec.Picture
+import qualified System.Random as R
+--import qualified Data.Set as Set
+import Text.Printf
+import Data.Tuple
+import qualified Data.Map as M
+import qualified Data.MultiMap as MM
+import Control.Applicative
+import Control.Monad.Memo
+import Data.Function  
+import Control.Arrow ((&&&))
+
 import System
 import TangramMakerUtil
 import Util
+import ImageUtil
 
 -- All new consistent tangrams which can be produced by combining pairs of
 -- existing tangrams.
