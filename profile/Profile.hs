@@ -24,6 +24,11 @@ data ImageDimensions = ImageDimensions Int Int deriving Show
 instance Arbitrary ImageDimensions where
   arbitrary = ImageDimensions <$> choose (500, 1000) <*> choose (500, 1000)
 
+mtwice :: Monad m => (a -> m a) -> (a -> m a)
+mtwice function = \input -> do
+  output <- function input
+  function output
+
 main :: IO ()
 
 --main = do

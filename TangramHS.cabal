@@ -24,9 +24,12 @@ library
   ghc-options: -Wall -auto-all -caf-all -threaded -O2
 
   exposed-modules:
-    ImageIO,
+    BruteTangramMaker,
+    ImageUtil,
     PipeUtil,
-    TangramMisc
+    System,
+    TangramMakerUtil,
+    Util
 
   build-depends:
     base ==4.6.*,

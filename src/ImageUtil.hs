@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module ImageIO where
+module ImageUtil where
 
 import System.Directory
 import System.FilePath.Posix
@@ -18,24 +18,17 @@ import Control.Arrow ((&&&))
 
 type ImageRGBA8 = Image PixelRGBA8
 
+instance Show (Image PixelRGBA8) where
+  show image = show $ (imageWidth image, imageHeight image)
+
+_properties = imageWidth &&& imageHeight &&& imageData
+
 -- TODO: Surely I don't need this given I have defined Ord below.
 instance Eq (Image PixelRGBA8) where
-  left == right = properties left == properties right
-   where properties = imageWidth &&& imageHeight &&& imageData
+  left == right = _properties left == _properties right
 
 instance Ord (Image PixelRGBA8) where
-  left `compare` right = properties left `compare` properties right
-   where properties = imageWidth &&& imageHeight &&& imageData
-
--- https://www.fpcomplete.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions
---catchAny :: IO a -> (SomeException -> IO a) -> IO a
---catchAny = Control.Exception.catch
-
---removeIfExists :: FilePath -> IO ()
---removeIfExists fileName = removeFile fileName `catch` handleExists
---  where handleExists e
---          | isDoesNotExistError e = return ()
---          | otherwise = throwIO e
+  left `compare` right = _properties left `compare` _properties right
 
 -- Checks if a filename is an image filename for some standard extensions.
 isImageFilename :: FilePath -> Bool
@@ -46,31 +39,6 @@ imageFilesInDirectory :: FilePath -> IO [FilePath]
 imageFilesInDirectory directory = do
   allFilenames <- getDirectoryContents directory
   return $ map ((directory ++ "/") ++) $ filter isImageFilename allFilenames
-
----- Transcode an image to the PNG format.
----- Unfortunately, this method doesn't seem to work as frequently as the
----- IO-based method below.
---transcodeToPNG :: DynamicImage -> Maybe DynamicImage
---transcodeToPNG image = case encodeDynamicPng image of
---  Left _ -> Nothing
---  Right byteString -> case decodePng (toStrict byteString) of
---  	Left _ -> Nothing
---  	Right transcoded -> Just transcoded
-
----- It's a bit lame, but it seems writing the image to disk and reading back
----- is the most effective way to transcode the image.
---ioTranscodeToPNG :: DynamicImage -> IO (Maybe DynamicImage)
---ioTranscodeToPNG image = do
---  random <- getStdGen
---  let nextInt = abs $ fst $ next random
---  let filePath = printf "/tmp/tangramTranscoded%d.png" nextInt
---  savePngImage filePath image
---  eitherTranscoded <- readImage filePath
---  removeFile filePath
---  case eitherTranscoded of
---  	Left _ -> return Nothing
---  	-- Now let's make sure we can "transcode" without using IO.
---  	Right transcoded -> return $ transcodeToPNG transcoded
 
 transcodeToImageRGBA8 :: DynamicImage -> Maybe (ImageRGBA8)
 transcodeToImageRGBA8 dynamicImage = case dynamicImage of
@@ -84,12 +52,12 @@ transcodeToImageRGBA8 dynamicImage = case dynamicImage of
     promoteImage (convertImage image :: Image PixelRGB8)
   _ -> Nothing
 
+-- Attempts to read an `ImageRGBA8` from the given `FilePath`.
 readImageSafe :: FilePath -> IO (Maybe ImageRGBA8)
 readImageSafe filePath = do
   putStrLn $ "Reading " ++ filePath
   eitherImage <- readImage filePath
   case eitherImage of
-  	--Right image -> return $ Just image
   	Right image -> case transcodeToImageRGBA8 image of
   	  Nothing -> do
   	    putStrLn $ "Could not transcode image to PNG, skipping: " ++ filePath
