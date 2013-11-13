@@ -30,7 +30,9 @@ main :: IO ()
 --  putStrLn "Done"
 
 main = do
-  images <- replicateM 4 $ liftM head $ sample' arbitrary
+  images <- replicateM 3 $ liftM head $ sample' arbitrary
   let replicated = mtwice $ mtwice iterateTangrams
-  let tangrams = startEvalMemo $ replicated $ map Leaf images
-  mapM_ (putStrLn . show) tangrams  
+  let tangrams = startEvalMemo $ replicated $ map Leaf images :: [Tangram]
+  --putStrLn $ show $ last tangrams
+  putStrLn $ show $ tangrams !! 18
+  --mapM_ (putStrLn . show) tangrams  
