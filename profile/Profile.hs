@@ -25,10 +25,17 @@ instance Arbitrary ImageDimensions where
   arbitrary = ImageDimensions <$> choose (500, 1000) <*> choose (500, 1000)
 
 main :: IO ()
+
+--main = do
+--  images <- replicateM 4 $ liftM head $ sample' arbitrary
+--  let tangrams = startEvalMemo $ allTangrams images
+--  putStrLn "Start"
+--  --putStrLn $ show $ length tangrams
+--  mapM_ (putStrLn . show) tangrams
+--  putStrLn "Done"
+
 main = do
   images <- replicateM 4 $ liftM head $ sample' arbitrary
-  let tangrams = startEvalMemo $ allTangrams images
-  putStrLn "Start"
-  --putStrLn $ show $ length tangrams
-  mapM_ (putStrLn . show) tangrams
-  putStrLn "Done"
+  let replicated = mtwice $ mtwice iterateTangrams
+  let tangrams = startEvalMemo $ replicated $ map Leaf images
+  mapM_ (putStrLn . show) tangrams  

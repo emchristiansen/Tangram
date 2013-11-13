@@ -72,7 +72,7 @@ prop_legalRescalings (ImageDimensions width height) =
 --  mapM_ (putStrLn . show) tangrams'
 --  let tangrams'' = startEvalMemo $ iterateTangrams tangrams'
 --  putStrLn $ show $ length tangrams''
---  mapM_ (putStrLn . show) tangrams''
+--  mapM_ (putStrLn . show) tangrams''  
 
 --test_allTangrams :: IO ()
 --test_allTangrams = do

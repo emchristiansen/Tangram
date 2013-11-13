@@ -23,6 +23,7 @@ import qualified Data.MultiMap as MM
 import Control.Applicative
 import Control.Monad.Memo
 import Data.Function  
+import Control.Arrow ((&&&))
 
 type ImageProducer = Producer ImageRGBA8 IO ()
 
@@ -108,7 +109,8 @@ legalImageSizes width height = nub $ sort sizes
    crops = legalCrops width height
    sizes = concatMap (uncurry legalRescalings) crops
 
-type SizeMap = MM.MultiMap Int Int
+type SizeMap = M.Map Int (Int, Int)
+--type SizeMap = MM.MultiMap Int Int
 
 -- A collection of possible sizes of a tangram.
 -- For efficiency, it consists of two maps, allowing one to supply a width
@@ -116,25 +118,51 @@ type SizeMap = MM.MultiMap Int Int
 type TangramSizes = (SizeMap, SizeMap)
 
 mkTangramSizes :: [(Int, Int)] -> TangramSizes
-mkTangramSizes sizes = (widthToHeightsMap, heightToWidthsMap)
+mkTangramSizes sizes = (ranges widthToHeights, ranges heightToWidths)
  where
-  widthToHeightsMap = MM.fromList sizes
-  heightToWidthsMap = MM.fromList $ map swap sizes
+  widthToHeights = MM.fromList sizes
+  heightToWidths = MM.fromList $ map swap sizes
+  ranges :: MM.MultiMap Int Int -> M.Map Int (Int, Int)
+  ranges = (M.map (minimum &&& maximum)) . MM.toMap
+
+flipSizes :: SizeMap -> SizeMap
+flipSizes sizeMap = ranges $ map swap $ concat tuplesSwapped
+ where
+  fromRange (start, stop) = [start .. stop]
+  tuplesSwapped :: [[(Int, Int)]]
+  tuplesSwapped = 
+    map (\(l, r) -> (,) <$> [l] <*> r) $ M.assocs $ M.map fromRange sizeMap
+  ranges = (M.map (minimum &&& maximum)) . MM.toMap . MM.fromList 
 
 numSizes :: TangramSizes -> Int
-numSizes tangramSizes = length $ M.assocs $ MM.toMap $ fst tangramSizes
+numSizes tangramSizes = sum counts
+ where
+  numInRange = (+ 1) . uncurry (-) . swap
+  counts = map (numInRange . snd) $ M.assocs $ fst tangramSizes
+
+  --length $ M.assocs $ MM.toMap $ fst tangramSizes
 
 -- Creates a new map where the keys are the intersection of the keys of
 -- the map, and the values are all possible sums of the values from either
 -- map.
 -- That's probably not super easy to understand.
 -- So just think of this as a helper function for `legalTangramSizes`.
-addDimensions :: MM.MultiMap Int Int -> MM.MultiMap Int Int -> [(Int, Int)]
-addDimensions left right = concatMap keyValueTuples keys
+addDimensions :: SizeMap -> SizeMap -> SizeMap
+addDimensions left right = M.fromList $ map (id &&& values) keys
  where
-  keys = nub $ sort $ intersect (MM.keys left) (MM.keys right)
-  values key = nub $ sort $ (+) <$> left MM.! key <*> right MM.! key
-  keyValueTuples key = (,) <$> [key] <*> values key
+  keys :: [Int]
+  keys = nub $ sort $ intersect (M.keys left) (M.keys right)
+  addPairs left' right' = (fst left' + fst right', snd left' + snd right')
+  values key = addPairs (left M.! key) (right M.! key)
+  --values key = nub $ sort $ (+) <$> left MM.! key <*> right MM.! key
+  --keyValueTuples key = (,) <$> [key] <*> values key
+
+--addDimensions :: MM.MultiMap Int Int -> MM.MultiMap Int Int -> [(Int, Int)]
+--addDimensions left right = concatMap keyValueTuples keys
+-- where
+--  keys = nub $ sort $ intersect (MM.keys left) (MM.keys right)
+--  values key = nub $ sort $ (+) <$> left MM.! key <*> right MM.! key
+--  keyValueTuples key = (,) <$> [key] <*> values key
 
 fibm :: MonadMemo Int Int m => Int -> m Int
 fibm 0 = return 0
@@ -158,15 +186,17 @@ legalTangramSizes (Leaf image) = return $ mkTangramSizes $ map addBorder sizes
 --legalTangramSizes (Vertical top bottom) = undefined
 
 legalTangramSizes (Vertical top bottom) = do
-  topSizes <- memo legalTangramSizes top
-  bottomSizes <- memo legalTangramSizes bottom
-  return $ mkTangramSizes $ addDimensions (fst topSizes) (fst bottomSizes)
+  topByWidth <- liftM fst $ memo legalTangramSizes top
+  bottomByWidth <- liftM fst $ memo legalTangramSizes bottom
+  let sizesByWidth = addDimensions topByWidth bottomByWidth
+  return $ (sizesByWidth, flipSizes sizesByWidth)
 
 legalTangramSizes (Horizontal left right) = do
-  leftSizes <- memo legalTangramSizes left
-  rightSizes <- memo legalTangramSizes right
-  let swappedSizes = addDimensions (snd leftSizes) (snd rightSizes)
-  return $ mkTangramSizes $ map swap swappedSizes
+  leftByHeight <- liftM snd $ memo legalTangramSizes left
+  rightByHeight <- liftM snd $ memo legalTangramSizes right
+  let sizesByHeight = addDimensions leftByHeight rightByHeight
+  return $ (flipSizes sizesByHeight, sizesByHeight)
+  --return $ swap mkTangramSizes' swappedSizes
 
 --legalTangramSizes (Vertical top bottom) = 
 --  mkTangramSizes $ addDimensions topWidthToHeightsMap bottomWidthToHeightsMap
@@ -204,6 +234,17 @@ pairTangrams components = do
 iterateTangrams :: MonadMemo Tangram TangramSizes m => [Tangram] -> m [Tangram]
 iterateTangrams components = 
   liftM2 (++) (return components) (pairTangrams components)
+
+--iteratePipe :: MonadMemo Tangram TangramSizes m => Pipe [Tangram] [Tangram] m ()
+--iteratePipe = do
+--  tangrams <- await
+--  iterated <- iterateTangrams tangrams
+--  yield tangrams
+
+mtwice :: Monad m => (a -> m a) -> (a -> m a)
+mtwice function = \input -> do
+  output <- function input
+  function output
 
 -- Repeatedly performs a monadic computation until it hits a fixed point,
 -- and returns the fixed point.
