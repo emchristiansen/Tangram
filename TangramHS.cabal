@@ -77,7 +77,9 @@ executable TangramHS
     repa
 
 executable Profile
-  hs-source-dirs: profile
+  hs-source-dirs: 
+   test,
+   test/profile
   main-is: Profile.hs
 
   ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2
@@ -108,7 +110,9 @@ executable Profile
 
 test-suite TestTangramHS
   type: exitcode-stdio-1.0
-  hs-source-dirs: test
+  hs-source-dirs: 
+    test,
+    test/test
   main-is: Test.hs
   ghc-options: -Wall -auto-all -caf-all -threaded
   default-extensions: FlexibleInstances

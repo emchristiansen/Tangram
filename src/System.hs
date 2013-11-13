@@ -30,9 +30,9 @@ import Util
 -- We're restricting ourselves to tangrams which can be constructed by
 -- either stacking tangrams vertically or putting them side-by-side.
 data Tangram = 
-  Vertical !Tangram !Tangram | 
-  Horizontal !Tangram !Tangram |
-  Leaf !ImageRGBA8 deriving (Show, Eq, Ord)
+  Vertical Tangram Tangram | 
+  Horizontal Tangram Tangram |
+  Leaf ImageRGBA8 deriving (Show, Eq, Ord)
 
 type ImageProducer = Producer ImageRGBA8 IO ()
 
