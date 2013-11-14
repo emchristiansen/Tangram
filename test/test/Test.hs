@@ -17,8 +17,8 @@ import BruteTangramMaker
 
 import TestUtil
 
-prop_legalCrops :: ImageDimensions -> Bool
-prop_legalCrops (ImageDimensions width height) = 
+prop_legalCrops :: ImageSize -> Bool
+prop_legalCrops (ImageSize width height) = 
   length (legalCrops width height) > 0
 
 test_legalCrops :: IO ()
@@ -27,8 +27,8 @@ test_legalCrops = do
   --mapM_ (putStrLn . show) crops
   putStrLn $ show $ length crops
 
-prop_legalRescalings :: ImageDimensions -> Bool
-prop_legalRescalings (ImageDimensions width height) = 
+prop_legalRescalings :: ImageSize -> Bool
+prop_legalRescalings (ImageSize width height) = 
   length (legalRescalings width height) > 0
 
 --test_legalTangramSizes_memo :: IO ()

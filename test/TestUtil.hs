@@ -4,6 +4,8 @@ import Codec.Picture
 import Control.Applicative
 import Test.QuickCheck
 
+import System
+
 instance Arbitrary PixelRGBA8 where
   arbitrary = PixelRGBA8 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
@@ -13,7 +15,5 @@ instance Arbitrary (Image PixelRGBA8) where
    	pixel = (\pixel' -> \_ _ -> pixel') <$> arbitrary
    	dimension = choose (500, 1000)
 
-data ImageDimensions = ImageDimensions Int Int deriving Show
-
-instance Arbitrary ImageDimensions where
-  arbitrary = ImageDimensions <$> choose (500, 1000) <*> choose (500, 1000)	
+instance Arbitrary ImageSize where
+  arbitrary = ImageSize <$> choose (500, 1000) <*> choose (500, 1000)	

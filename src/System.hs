@@ -27,6 +27,11 @@ import ImageUtil
 import PipeUtil
 import Util
 
+type Width = Int
+type Height = Int
+
+data ImageSize = ImageSize Width Height deriving Show
+
 -- We're restricting ourselves to tangrams which can be constructed by
 -- either stacking tangrams vertically or putting them side-by-side.
 data Tangram = 
