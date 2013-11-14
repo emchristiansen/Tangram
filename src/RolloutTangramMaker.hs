@@ -44,8 +44,8 @@ maxImagesInTangram = 8
 maxPermutations :: Int
 maxPermutations = 32
 
-numAttemptsPerPermutation :: Int
-numAttemptsPerPermutation = 32
+--numAttemptsPerPermutation :: Int
+--numAttemptsPerPermutation = 32
 
 wallpaperSize :: ImageSize
 wallpaperSize = ImageSize 2000 1000
@@ -64,11 +64,16 @@ firstLegalTangram tangrams = do
   sizes <- mapM (memo legalTangramSizes) tangrams
   return $ (liftM fst) $ find (containsWallpaperSize . snd) $ zip tangrams sizes
 
+imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)
+imagesToTangram images = do
+  let permuted = take maxPermutations $ permutations images
+  tangramsUnflat <- mapM scanlTangrams permuted
+  return $ startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
+
 rolloutTangramMaker :: TangramMaker
 rolloutTangramMaker = forever $ do
   images <- replicateM maxImagesInTangram await
-  tangramsUnflat <- lift $ evalRandIO $ mapM scanlTangrams $ permutations images
-  let legalTangramMaybe = startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
+  legalTangramMaybe <- lift $ evalRandIO $ imagesToTangram images
   case legalTangramMaybe of 
   	Nothing -> 
   	  -- We failed, so send all the images back.
