@@ -38,17 +38,48 @@ scanlTangrams :: (RandomGen g) => [ImageRGBA8] -> Rand g [Tangram]
 scanlTangrams [] = return []
 scanlTangrams (image : images) = scanlM addToTangram (Leaf image) images
 
+shuffle :: RandomGen g => [a] -> Rand g [a]
+shuffle values = do
+  index <- getRandomR (0, length permutations' - 1)
+  return $ permutations' !! index
+ where
+  permutations' = permutations values
+
+-- The head of the returned list is the new tangram.
+randomlyPairTangrams :: RandomGen g => [Tangram] -> Rand g [Tangram]
+randomlyPairTangrams [] = return []
+randomlyPairTangrams [_] = return []
+randomlyPairTangrams tangrams = do
+  leftTangram : rightTangram : otherTangrams <- shuffle tangrams
+  switch <- getRandom
+  let newTangram = if switch then Vertical leftTangram rightTangram
+  	else Horizontal leftTangram rightTangram
+  return $ newTangram : otherTangrams
+
+tangramsFromPairing :: RandomGen g => [ImageRGBA8] -> Rand g [Tangram]
+tangramsFromPairing [] = return []
+tangramsFromPairing [_] = return []
+tangramsFromPairing images = do
+  --foo <- return leafs >>= randomlyPairTangrams >>= randomlyPairTangrams
+  tangrams <- sequence $ iterate (>>= randomlyPairTangrams) $ return leafs
+  --newTangrams <- randomlyPairTangrams leafs
+  return $ map head $ take numPairs $ tail tangrams
+ where
+  leafs = map Leaf images
+  numPairs = length images - 1
+
+
 maxImagesInTangram :: Int
 maxImagesInTangram = 8
 
 maxPermutations :: Int
 maxPermutations = 32
 
+numPairingRuns :: Int
+numPairingRuns = 32
+
 --numAttemptsPerPermutation :: Int
 --numAttemptsPerPermutation = 32
-
-wallpaperSize :: ImageSize
-wallpaperSize = ImageSize 2000 1000
 
 containsWallpaperSize :: TangramSizes -> Bool
 containsWallpaperSize sizes = definedForWidth && heightInRange
@@ -66,9 +97,15 @@ firstLegalTangram tangrams = do
 
 imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)
 imagesToTangram images = do
-  let permuted = take maxPermutations $ permutations images
-  tangramsUnflat <- mapM scanlTangrams permuted
-  return $ startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
+  pairings <- tangramsFromPairing images
+  let tangrams = (map Leaf images) ++ pairings
+  return $ startEvalMemo $ firstLegalTangram $ tangrams
+
+--imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)
+--imagesToTangram images = do
+--  let permuted = take maxPermutations $ permutations images
+--  tangramsUnflat <- mapM scanlTangrams permuted
+--  return $ startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
 
 rolloutTangramMaker :: TangramMaker
 rolloutTangramMaker = forever $ do

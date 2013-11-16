@@ -10,10 +10,13 @@ import qualified Data.MultiMap as MM
 import qualified Data.Map as M
 import Control.Monad
 import Control.Monad.Memo
+import Data.Maybe
 
 import System
 import TangramMakerUtil
 import BruteTangramMaker
+import RolloutTangramMaker
+import Control.Monad.Random
 
 import TestUtil
 
@@ -78,6 +81,29 @@ prop_legalRescalings (ImageSize width height) =
 -- where 
 --  sizes = legalTangramSizes (Leaf image)
 --  numSizes = length $ MM.keys $ fst sizes
+
+test_scanlTangrams = do
+  let pixel = PixelRGBA8 0 0 0 0
+  let image = generateImage (\_ _ -> pixel) 300 300
+  let images = take 4 $ repeat image
+  tangrams <- evalRandIO $ scanlTangrams images
+  mapM_ (putStrLn . show) tangrams
+
+test_tangramsFromPairing = do
+  let pixel = PixelRGBA8 0 0 0 0
+  let image = generateImage (\_ _ -> pixel) 300 300
+  let images = take 4 $ repeat image
+  tangrams <- evalRandIO $ tangramsFromPairing images
+  mapM_ (putStrLn . show) tangrams
+
+test_imagesToTangram = do
+  let pixel = PixelRGBA8 0 0 0 0
+  let image = generateImage (\_ _ -> pixel) 300 300
+  let images = take 4 $ repeat image
+  --images <- replicateM 1 $ liftM head $ sample' arbitrary
+  legalTangramMaybe <- evalRandIO $ imagesToTangram images
+  assertEqual True $ isJust legalTangramMaybe
+  putStrLn $ show $ legalTangramMaybe	
 
 --myReverse :: [a] -> [a]
 --myReverse []     = []

@@ -21,7 +21,7 @@ library
 
   default-language: Haskell2010
 
-  ghc-options: -Wall -auto-all -caf-all -threaded -O2
+  ghc-options: -Wall -auto-all -caf-all -threaded -O2 -fllvm
 
   exposed-modules:
     BruteTangramMaker,
@@ -55,7 +55,7 @@ executable Tangram
   hs-source-dirs: bin
   main-is: Tangram.hs
 
-  ghc-options: -Wall -auto-all -caf-all -threaded
+  ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
 
   default-extensions: FlexibleInstances
 
@@ -85,7 +85,7 @@ executable Profile
    test/profile
   main-is: Profile.hs
 
-  ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2
+  ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2 -fllvm
 
   default-extensions: FlexibleInstances
 
@@ -109,7 +109,8 @@ executable Profile
     multimap,
     repa,
     monad-memo,
-    QuickCheck
+    QuickCheck,
+    MonadRandom
 
 test-suite TestTangram
   type: exitcode-stdio-1.0
@@ -117,7 +118,7 @@ test-suite TestTangram
     test,
     test/test
   main-is: Test.hs
-  ghc-options: -Wall -auto-all -caf-all -threaded
+  ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
   default-extensions: FlexibleInstances
   default-language: Haskell2010
   build-depends: 
@@ -128,5 +129,6 @@ test-suite TestTangram
     JuicyPixels,
     multimap,
     containers,
-    monad-memo
+    monad-memo,
+    MonadRandom
 

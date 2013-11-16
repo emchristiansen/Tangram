@@ -47,6 +47,10 @@ type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 Tangram) IO ()
 
 type DisplaySetter = Consumer Tangram IO ()
 
+wallpaperSize :: ImageSize
+--wallpaperSize = ImageSize 2000 1000
+wallpaperSize = ImageSize 400 400
+
 -- The larger dimension of a resized component image must be at 
 -- least this many pixels.
 -- We don't want tiny images.
