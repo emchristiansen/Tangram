@@ -10,6 +10,7 @@ import Data.List
 import qualified Data.Map as M
 import Pipes
 import Pipes.Concurrent
+import Control.Lens
 
 import System
 import ImageUtil
@@ -81,25 +82,26 @@ numPairingRuns = 32
 --numAttemptsPerPermutation :: Int
 --numAttemptsPerPermutation = 32
 
-containsWallpaperSize :: TangramSizes -> Bool
-containsWallpaperSize sizes = definedForWidth && heightInRange
+containsWallpaperSize :: Constraints -> TangramSizes -> Bool
+containsWallpaperSize constraints sizes = definedForWidth && heightInRange
  where
-  ImageSize width height = wallpaperSize
+  width = constraints ^. wallpaperSizeL ^. widthL
+  height = constraints ^. wallpaperSizeL ^. heightL
   fromWidth = fst sizes
   definedForWidth = width `M.member` fromWidth
   (minHeight, maxHeight) = fromWidth M.! width 
   heightInRange = height >= minHeight && height <= maxHeight
 
-firstLegalTangram :: MonadMemo Tangram TangramSizes m => [Tangram] -> m (Maybe Tangram)
-firstLegalTangram tangrams = do
-  sizes <- mapM (memo legalTangramSizes) tangrams
-  return $ (liftM fst) $ find (containsWallpaperSize . snd) $ zip tangrams sizes
+firstLegalTangram :: MonadMemo Tangram TangramSizes m => Constraints -> [Tangram] -> m (Maybe Tangram)
+firstLegalTangram constraints tangrams = do
+  sizes <- mapM (memo $ legalTangramSizes constraints) tangrams
+  return $ (liftM fst) $ find (containsWallpaperSize constraints. snd) $ zip tangrams sizes
 
-imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)
-imagesToTangram images = do
+imagesToTangram :: (RandomGen g) => Constraints -> [ImageRGBA8] -> Rand g (Maybe Tangram)
+imagesToTangram constraints images = do
   pairings <- tangramsFromPairing images
   let tangrams = (map Leaf images) ++ pairings
-  return $ startEvalMemo $ firstLegalTangram $ tangrams
+  return $ startEvalMemo $ firstLegalTangram constraints $ tangrams
 
 --imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)
 --imagesToTangram images = do
@@ -107,10 +109,10 @@ imagesToTangram images = do
 --  tangramsUnflat <- mapM scanlTangrams permuted
 --  return $ startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
 
-rolloutTangramMaker :: TangramMaker
-rolloutTangramMaker = forever $ do
+rolloutTangramMaker :: Constraints -> TangramMaker
+rolloutTangramMaker constraints = forever $ do
   images <- replicateM maxImagesInTangram await
-  legalTangramMaybe <- lift $ evalRandIO $ imagesToTangram images
+  legalTangramMaybe <- lift $ evalRandIO $ imagesToTangram constraints images
   case legalTangramMaybe of 
   	Nothing -> 
   	  -- We failed, so send all the images back.

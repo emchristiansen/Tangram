@@ -1,5 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeSynonymInstances   #-}
+
+
 module System where
 
 import Control.Monad
@@ -22,15 +29,35 @@ import Control.Applicative
 import Control.Monad.Memo
 import Data.Function  
 import Control.Arrow ((&&&))
+import Control.Lens
 
 import ImageUtil
 import PipeUtil
 import Util
 
-type Width = Int
-type Height = Int
+--data A = A
+--  { _aText :: String
+--  }
+--makeFields ''A
 
-data ImageSize = ImageSize Width Height deriving Show
+--a = A "hi"
+
+--b = a ^. text
+
+data RectangleSize = RectangleSize {
+  _rectanglesizeWidthL :: Int,
+  _rectanglesizeHeightL :: Int
+} deriving (Show, Eq, Ord)
+makeFields ''RectangleSize
+
+--i = ImageSize2 20 39
+--i2 :: Int
+--i2 = i ^. width
+
+--type Width = Int
+--type Height = Int
+
+--data ImageSize = ImageSize Width Height deriving Show
 
 -- We're restricting ourselves to tangrams which can be constructed by
 -- either stacking tangrams vertically or putting them side-by-side.
@@ -47,28 +74,37 @@ type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 Tangram) IO ()
 
 type DisplaySetter = Consumer Tangram IO ()
 
-wallpaperSize :: ImageSize
---wallpaperSize = ImageSize 2000 1000
-wallpaperSize = ImageSize 400 400
+data Constraints = Constraints {
+  _constraintsWallpaperSizeL :: RectangleSize,
+  _constraintsMinLargerDimensionL :: Int,
+  _constraintsMaxSmallerDimensionL :: Int,
+  _constraintsMaxAspectWarpL :: Double,
+  _constraintsHalfBorderWidthL :: Int
+}
+makeFields ''Constraints
 
--- The larger dimension of a resized component image must be at 
--- least this many pixels.
--- We don't want tiny images.
-minLargerDimension :: Int
-minLargerDimension = 300
--- The smaller dimension of a resized component image may not be more 
--- than this many pixels.
--- We don't want one image taking up the whole tangram.
-maxSmallerDimension :: Int
-maxSmallerDimension = 600
---minRelativeSize = 0.5
--- We may not change the aspect ratio of an image by more than this constant.
--- We want to keep image cropping to an absolute minimum.
-maxAspectWarp :: Double
-maxAspectWarp = 1.02
--- Half the width of the pixel border between images.
-halfBorderWidth :: Int
-halfBorderWidth = 1
+--wallpaperSize :: ImageSize
+----wallpaperSize = ImageSize 2000 1000
+--wallpaperSize = ImageSize 400 400
+
+---- The larger dimension of a resized component image must be at 
+---- least this many pixels.
+---- We don't want tiny images.
+--minLargerDimension :: Int
+--minLargerDimension = 300
+---- The smaller dimension of a resized component image may not be more 
+---- than this many pixels.
+---- We don't want one image taking up the whole tangram.
+--maxSmallerDimension :: Int
+--maxSmallerDimension = 600
+----minRelativeSize = 0.5
+---- We may not change the aspect ratio of an image by more than this constant.
+---- We want to keep image cropping to an absolute minimum.
+--maxAspectWarp :: Double
+--maxAspectWarp = 1.02
+---- Half the width of the pixel border between images.
+--halfBorderWidth :: Int
+--halfBorderWidth = 1
 
 -- Lazily reads all the images in a directory.
 -- It even selects the next path lazily (though not super efficiently), so
@@ -95,9 +131,9 @@ directoryImageProducer directory usedFiles = do
 -- Otherwise yield an unknown image.
 mixingImagePool :: [ImageRGBA8] -> [ImageRGBA8] -> [ImageRGBA8] -> ImagePool
 mixingImagePool freshImages rejectedImages knownImages = do
-  lift $ printf "length freshImages: %d\n" $ length freshImages
-  lift $ printf "length rejectedImages: %d\n" $ length rejectedImages
-  lift $ printf "length knownImages: %d\n" $ length knownImages
+  _ <- lift $ printf "length freshImages: %d\n" $ length freshImages
+  _ <- lift $ printf "length rejectedImages: %d\n" $ length rejectedImages
+  _ <- lift $ printf "length knownImages: %d\n" $ length knownImages
   case null freshImages of
     -- Make sure we have at least one fresh image.
     True -> do
@@ -144,6 +180,7 @@ debugDisplaySetter filePath = forever $ do
       lift $ putStrLn "Writing"
       lift $ writePng filePath image
       lift $ threadDelay 400000
+    _ -> undefined
 
 runSystem :: ImageProducer -> ImagePool -> TangramMaker -> DisplaySetter -> IO ()
 runSystem imageProducer imagePool tangramMaker displaySetter = do

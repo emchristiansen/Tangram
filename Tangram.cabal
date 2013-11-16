@@ -17,7 +17,13 @@ cabal-version:       >=1.16
 library
   hs-source-dirs:   src
 
-  default-extensions: FlexibleInstances, FlexibleContexts
+  default-extensions: 
+    FlexibleInstances, 
+    FlexibleContexts,
+    FunctionalDependencies,
+    MultiParamTypeClasses,
+    TemplateHaskell,
+    TypeSynonymInstances
 
   default-language: Haskell2010
 
@@ -49,7 +55,8 @@ library
     monad-memo,
     repa,
     MonadRandom,
-    monad-loops
+    monad-loops,
+    lens
 
 executable Tangram
   hs-source-dirs: bin
@@ -57,7 +64,13 @@ executable Tangram
 
   ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
 
-  default-extensions: FlexibleInstances
+  default-extensions: 
+    FlexibleInstances, 
+    FlexibleContexts,
+    FunctionalDependencies,
+    MultiParamTypeClasses,
+    TemplateHaskell,
+    TypeSynonymInstances
 
   default-language: Haskell2010
 
@@ -87,7 +100,13 @@ executable Profile
 
   ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2 -fllvm
 
-  default-extensions: FlexibleInstances
+  default-extensions: 
+    FlexibleInstances, 
+    FlexibleContexts,
+    FunctionalDependencies,
+    MultiParamTypeClasses,
+    TemplateHaskell,
+    TypeSynonymInstances
 
   default-language: Haskell2010
 
@@ -119,7 +138,13 @@ test-suite TestTangram
     test/test
   main-is: Test.hs
   ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
-  default-extensions: FlexibleInstances
+  default-extensions: 
+    FlexibleInstances, 
+    FlexibleContexts,
+    FunctionalDependencies,
+    MultiParamTypeClasses,
+    TemplateHaskell,
+    TypeSynonymInstances
   default-language: Haskell2010
   build-depends: 
     Tangram,

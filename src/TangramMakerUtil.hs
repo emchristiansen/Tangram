@@ -20,6 +20,7 @@ import Control.Applicative
 import Control.Monad.Memo
 import Data.Function  
 import Control.Arrow ((&&&))
+import Control.Lens
 
 import System
 import Util
@@ -32,13 +33,13 @@ componentImages (Horizontal left right) =
   (componentImages left) ++ (componentImages right)  
 componentImages (Leaf image) = [image]	
 
-legalCrops :: Int -> Int -> [(Int, Int)]
-legalCrops width height = nub $ sort crops
+legalCrops :: Constraints -> Int -> Int -> [(Int, Int)]
+legalCrops constraints width height = nub $ sort crops
  where
   aspect width' height' = fromIntegral width' / fromIntegral height'
   trueAspect = aspect width height
-  minAspect = trueAspect / maxAspectWarp
-  maxAspect = trueAspect * maxAspectWarp
+  minAspect = trueAspect / constraints ^. maxAspectWarpL
+  maxAspect = trueAspect * constraints ^. maxAspectWarpL
   legalAspect width' height' = 
     (aspect width' height' <= maxAspect) && (aspect width' height' >= minAspect)
   legalWidths = filter (\width' -> legalAspect width' height) [0 .. width]
@@ -46,30 +47,33 @@ legalCrops width height = nub $ sort crops
   crops = 
     ((,) <$> legalWidths <*> [height]) ++ ((,) <$> [width] <*> legalHeights) 
 
-legalRescalingsHelper :: Int -> Int -> [(Int, Int)]
-legalRescalingsHelper smallerDimension largerDimension = nub $ sort rescalings
+legalRescalingsHelper :: Constraints -> Int -> Int -> [(Int, Int)]
+legalRescalingsHelper constraints smallerDimension largerDimension = nub $ sort rescalings
  where
   divide denominator = (/ fromIntegral denominator) . fromIntegral
   smallerScalingFactors :: [Double]
   smallerScalingFactors =
-    map (divide smallerDimension) [maxSmallerDimension .. smallerDimension]  
+    map (divide smallerDimension) [constraints ^. maxSmallerDimensionL .. smallerDimension]  
   largerScalingFactors :: [Double]
   largerScalingFactors = 
-    map (divide largerDimension) [minLargerDimension .. largerDimension]
+    map (divide largerDimension) [constraints ^. minLargerDimensionL .. largerDimension]
   rescale factor = 
     (round (factor * fromIntegral smallerDimension), round (factor * fromIntegral largerDimension))
   rescalings = map rescale $ smallerScalingFactors ++ largerScalingFactors
 
-legalRescalings :: Int -> Int -> [(Int, Int)]
-legalRescalings width height = case width <= height of
-  True -> legalRescalingsHelper width height
-  False -> map swap $ legalRescalingsHelper height width
+legalRescalings :: Constraints -> Int -> Int -> [(Int, Int)]
+legalRescalings constraints width height = case width <= height of
+  True -> legalRescalingsHelper constraints width height
+  False -> map swap $ legalRescalingsHelper constraints height width
 
-legalImageSizes :: Int -> Int -> [(Int, Int)]
-legalImageSizes width height = nub $ sort sizes
+legalImageSizes :: Constraints -> Int -> Int -> [(Int, Int)]
+legalImageSizes constraints width height = nub $ sort sizes
   where
-   crops = legalCrops width height
-   sizes = concatMap (uncurry legalRescalings) crops
+   crops = legalCrops constraints width height
+   sizes = concatMap (uncurry (legalRescalings constraints)) crops
+
+--legalImageSizes :: Int -> Int -> [(Int, Int)]
+--legalImageSizes = undefined
 
 type SizeMap = M.Map Int (Int, Int)  
 
@@ -114,22 +118,32 @@ addDimensions left right = M.fromList $ map (id &&& values) keys
   addPairs left' right' = (fst left' + fst right', snd left' + snd right')
   values key = addPairs (left M.! key) (right M.! key)
 
-legalTangramSizes :: MonadMemo Tangram TangramSizes m => Tangram -> m TangramSizes
+--c :: Constraints
+--c = undefined
 
-legalTangramSizes (Leaf image) = return $ mkTangramSizes $ map addBorder sizes
+----l :: Int -> Int -> [(Int, Int)]
+----l = legalImageSizes c
+
+legalTangramSizes :: MonadMemo Tangram TangramSizes m => Constraints -> Tangram -> m TangramSizes
+
+legalTangramSizes constraints (Leaf image) = return $ mkTangramSizes $ map addBorder sizes
  where
   addBorder (width, height) = 
-    (width + 2 * halfBorderWidth, height + 2 * halfBorderWidth)
-  sizes = legalImageSizes (imageWidth image) (imageHeight image)
+    (width + 2 * constraints ^. halfBorderWidthL, height + 2 * constraints ^. halfBorderWidthL)
+  sizes :: [(Int, Int)]
+  --sizes = (legalImageSizes constraints) (imageWidth image) (imageHeight image)
+  sizes = legalImageSizes constraints (imageWidth image) (imageHeight image)
 
-legalTangramSizes (Vertical top bottom) = do
-  topByWidth <- liftM fst $ memo legalTangramSizes top
-  bottomByWidth <- liftM fst $ memo legalTangramSizes bottom
+legalTangramSizes constraints (Vertical top bottom) = do
+  topByWidth <- liftM fst $ memo legalTangramSizes' top
+  bottomByWidth <- liftM fst $ memo legalTangramSizes' bottom
   let sizesByWidth = addDimensions topByWidth bottomByWidth
   return $ (sizesByWidth, flipSizes sizesByWidth)
+ where legalTangramSizes' = legalTangramSizes constraints
 
-legalTangramSizes (Horizontal left right) = do
-  leftByHeight <- liftM snd $ memo legalTangramSizes left
-  rightByHeight <- liftM snd $ memo legalTangramSizes right
+legalTangramSizes constraints (Horizontal left right) = do
+  leftByHeight <- liftM snd $ memo legalTangramSizes' left
+  rightByHeight <- liftM snd $ memo legalTangramSizes' right
   let sizesByHeight = addDimensions leftByHeight rightByHeight
   return $ (flipSizes sizesByHeight, sizesByHeight)  
+ where legalTangramSizes' = legalTangramSizes constraints

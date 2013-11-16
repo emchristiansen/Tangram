@@ -28,8 +28,8 @@ import ImageUtil
 
 -- All new consistent tangrams which can be produced by combining pairs of
 -- existing tangrams.
-pairTangrams :: MonadMemo Tangram TangramSizes m => [Tangram] -> m [Tangram]
-pairTangrams components = do
+pairTangrams :: MonadMemo Tangram TangramSizes m => Constraints -> [Tangram] -> m [Tangram]
+pairTangrams constraints components = do
   let pairs = filter (uncurry (<)) $ (,) <$> components <*> components
   let combinations = [uncurry Vertical, uncurry Horizontal] <*> pairs :: [Tangram]
   filterM consistent $ filter noDuplicates $ filter novel combinations
@@ -41,13 +41,13 @@ pairTangrams components = do
     length (componentImages tangram) == 
       length (nub $ sort $ componentImages tangram)
   consistent :: MonadMemo Tangram TangramSizes m => Tangram -> m Bool
-  consistent = liftM ((> 0) . numSizes) . memo legalTangramSizes
+  consistent = liftM ((> 0) . numSizes) . memo (legalTangramSizes constraints)
 
 -- All tangrams which can be produced from the given tangrams though at most
 -- one pairing.
-iterateTangrams :: MonadMemo Tangram TangramSizes m => [Tangram] -> m [Tangram]
-iterateTangrams components = 
-  liftM2 (++) (return components) (pairTangrams components)
+iterateTangrams :: MonadMemo Tangram TangramSizes m => Constraints -> [Tangram] -> m [Tangram]
+iterateTangrams constraints components = 
+  liftM2 (++) (return components) (pairTangrams constraints components)
 
 -- Repeatedly performs a monadic computation until it hits a fixed point,
 -- and returns the fixed point.
@@ -60,5 +60,5 @@ mfix function monadicInput = do
     False -> mfix function $ return output
 
 -- All tangrams which can be produced from a given finite list of images.
-allTangrams :: MonadMemo Tangram TangramSizes m => [ImageRGBA8] -> m [Tangram]
-allTangrams images = mfix iterateTangrams $ return $ map Leaf images
+allTangrams :: MonadMemo Tangram TangramSizes m => Constraints -> [ImageRGBA8] -> m [Tangram]
+allTangrams constraints images = mfix (iterateTangrams constraints) $ return $ map Leaf images
