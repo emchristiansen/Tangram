@@ -100,6 +100,15 @@ firstLegalTangram constraints tangrams = do
   sizes <- mapM (memo $ legalTangramSizes constraints) tangrams
   return $ (liftM fst) $ find (containsWallpaperSize constraints. snd) $ zip tangrams sizes
 
+imagesToTangrams :: (RandomGen g) => RolloutParameters -> [ImageRGBA8] -> Rand g [Tangram]
+imagesToTangrams rolloutParameters images = do
+  a <- tangramsFromPairing images
+  b <- tangramsFromPairing images
+  --rollouts <- replicateM (rolloutParameters ^. numPairingAttemptsL) $ tangramsFromPairing images
+  --return $ leafs ++ concat rollouts
+  return $ leafs ++ a ++ b
+ where leafs = map Leaf images
+
 imagesToTangram :: (RandomGen g) => Constraints -> [ImageRGBA8] -> Rand g (Maybe Tangram)
 imagesToTangram constraints images = do
   pairings <- tangramsFromPairing images

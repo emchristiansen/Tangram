@@ -27,7 +27,8 @@ library
 
   default-language: Haskell2010
 
-  ghc-options: -Wall -auto-all -caf-all -threaded -O2 -fllvm
+  ghc-options: -Wall -auto-all -caf-all -threaded -O2 
+  -- -fllvm
 
   exposed-modules:
     BruteTangramMaker,
@@ -62,7 +63,8 @@ executable Tangram
   hs-source-dirs: bin
   main-is: Tangram.hs
 
-  ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
+  ghc-options: -Wall -auto-all -caf-all -threaded 
+  -- -fllvm
 
   default-extensions: 
     FlexibleInstances, 
@@ -98,7 +100,8 @@ executable Profile
    test/profile
   main-is: Profile.hs
 
-  ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2 -fllvm
+  ghc-options: -Wall -auto-all -caf-all -threaded -rtsopts -prof -O2 
+  -- -fllvm
 
   default-extensions: 
     FlexibleInstances, 
@@ -137,7 +140,8 @@ test-suite TestTangram
     test,
     test/test
   main-is: Test.hs
-  ghc-options: -Wall -auto-all -caf-all -threaded -fllvm
+  ghc-options: -Wall -auto-all -caf-all -threaded 
+  -- -fllvm
   default-extensions: 
     FlexibleInstances, 
     FlexibleContexts,
