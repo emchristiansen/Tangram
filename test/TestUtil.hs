@@ -15,5 +15,5 @@ instance Arbitrary (Image PixelRGBA8) where
    	pixel = (\pixel' -> \_ _ -> pixel') <$> arbitrary
    	dimension = choose (500, 1000)
 
-instance Arbitrary ImageSize where
-  arbitrary = ImageSize <$> choose (500, 1000) <*> choose (500, 1000)	
+instance Arbitrary RectangleSize where
+  arbitrary = RectangleSize <$> choose (500, 1000) <*> choose (500, 1000)	

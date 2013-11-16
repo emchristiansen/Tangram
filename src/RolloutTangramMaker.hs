@@ -70,14 +70,17 @@ tangramsFromPairing images = do
   numPairs = length images - 1
 
 
-maxImagesInTangram :: Int
-maxImagesInTangram = 8
+--maxImagesInTangram :: Int
+--maxImagesInTangram = 8
 
-maxPermutations :: Int
-maxPermutations = 32
+--maxPermutations :: Int
+--maxPermutations = 32
 
-numPairingRuns :: Int
-numPairingRuns = 32
+data RolloutParameters = RolloutParameters {
+  _rolloutparametersMaxImagesInTangramL :: Int,
+  _rolloutparametersNumPairingAttemptsL :: Int
+} deriving (Show)
+makeFields ''RolloutParameters
 
 --numAttemptsPerPermutation :: Int
 --numAttemptsPerPermutation = 32
@@ -109,18 +112,18 @@ imagesToTangram constraints images = do
 --  tangramsUnflat <- mapM scanlTangrams permuted
 --  return $ startEvalMemo $ firstLegalTangram $ concat tangramsUnflat
 
-rolloutTangramMaker :: Constraints -> TangramMaker
-rolloutTangramMaker constraints = forever $ do
-  images <- replicateM maxImagesInTangram await
-  legalTangramMaybe <- lift $ evalRandIO $ imagesToTangram constraints images
-  case legalTangramMaybe of 
-  	Nothing -> 
-  	  -- We failed, so send all the images back.
-  	  mapM_ yield $ map Left images
-  	Just legalTangram -> do
-  	  -- Send back all the images we didn't use.
-  	  mapM_ yield $ map Left $ filter (notUsedIn legalTangram) images
-  	  -- Send forward our tangram.
-  	  yield $ Right legalTangram
- where
-   notUsedIn tangram image = not $ image `elem` componentImages tangram
+--rolloutTangramMaker :: Constraints -> RolloutParameters -> TangramMaker
+--rolloutTangramMaker constraints rolloutParameters = forever $ do
+--  images <- replicateM (rolloutParameters ^. maxImagesInTangramL) await
+--  legalTangramMaybe <- lift $ evalRandIO $ imagesToTangram constraints images
+--  case legalTangramMaybe of 
+--  	Nothing -> 
+--  	  -- We failed, so send all the images back.
+--  	  mapM_ yield $ map Left images
+--  	Just legalTangram -> do
+--  	  -- Send back all the images we didn't use.
+--  	  mapM_ yield $ map Left $ filter (notUsedIn legalTangram) images
+--  	  -- Send forward our tangram.
+--  	  yield $ Right legalTangram
+-- where
+--   notUsedIn tangram image = not $ image `elem` componentImages tangram

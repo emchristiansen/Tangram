@@ -20,19 +20,21 @@ import Control.Monad.Random
 
 import TestUtil
 
-prop_legalCrops :: ImageSize -> Bool
-prop_legalCrops (ImageSize width height) = 
-  length (legalCrops width height) > 0
+constraints = Constraints (RectangleSize 1000 500) 300 800 1.02 1
+
+prop_legalCrops :: RectangleSize -> Bool
+prop_legalCrops (RectangleSize width height) = 
+  length (legalCrops constraints width height) > 0
 
 test_legalCrops :: IO ()
 test_legalCrops = do
-  let crops = legalCrops 500 600
+  let crops = legalCrops constraints 500 600
   --mapM_ (putStrLn . show) crops
   putStrLn $ show $ length crops
 
-prop_legalRescalings :: ImageSize -> Bool
-prop_legalRescalings (ImageSize width height) = 
-  length (legalRescalings width height) > 0
+prop_legalRescalings :: RectangleSize -> Bool
+prop_legalRescalings (RectangleSize width height) = 
+  length (legalRescalings constraints width height) > 0
 
 --test_legalTangramSizes_memo :: IO ()
 --test_legalTangramSizes_memo = do
@@ -101,7 +103,7 @@ test_imagesToTangram = do
   let image = generateImage (\_ _ -> pixel) 300 300
   let images = take 4 $ repeat image
   --images <- replicateM 1 $ liftM head $ sample' arbitrary
-  legalTangramMaybe <- evalRandIO $ imagesToTangram images
+  legalTangramMaybe <- evalRandIO $ imagesToTangram constraints images
   assertEqual True $ isJust legalTangramMaybe
   putStrLn $ show $ legalTangramMaybe	
 

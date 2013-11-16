@@ -21,6 +21,8 @@ mtwice function = \input -> do
   output <- function input
   function output
 
+constraints = Constraints (RectangleSize 1000 500) 300 800 1.02 1
+
 main :: IO ()
 
 main = do
@@ -28,7 +30,7 @@ main = do
   let image = generateImage (\_ _ -> pixel) 300 300
   let images = take 4 $ repeat image
   --images <- replicateM 1 $ liftM head $ sample' arbitrary
-  legalTangramMaybe <- evalRandIO $ imagesToTangram images
+  legalTangramMaybe <- evalRandIO $ imagesToTangram constraints images
   putStrLn $ show $ legalTangramMaybe
 
 --main = do
