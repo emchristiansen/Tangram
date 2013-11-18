@@ -1,6 +1,5 @@
 module RolloutTangramMaker where
 
-import System.Random (StdGen)
 import Control.Monad.Random
 import Control.Monad
 import Control.Monad.Memo
@@ -15,9 +14,6 @@ import Control.Lens
 import System
 import ImageUtil
 import TangramMakerUtil
-
-die :: (RandomGen g) => Rand g Int
-die = getRandomR (1,6)
 
 -- A monadic version of scanl.
 -- Probably not the most efficient implementation.
@@ -41,8 +37,8 @@ scanlTangrams (image : images) = scanlM addToTangram (Leaf image) images
 
 shuffle :: RandomGen g => [a] -> Rand g [a]
 shuffle values = do
-  index <- getRandomR (0, length permutations' - 1)
-  return $ permutations' !! index
+  index' <- getRandomR (0, length permutations' - 1)
+  return $ permutations' !! index'
  where
   permutations' = permutations values
 
@@ -102,11 +98,11 @@ firstLegalTangram constraints tangrams = do
 
 imagesToTangrams :: (RandomGen g) => RolloutParameters -> [ImageRGBA8] -> Rand g [Tangram]
 imagesToTangrams rolloutParameters images = do
-  a <- tangramsFromPairing images
-  b <- tangramsFromPairing images
-  --rollouts <- replicateM (rolloutParameters ^. numPairingAttemptsL) $ tangramsFromPairing images
-  --return $ leafs ++ concat rollouts
-  return $ leafs ++ a ++ b
+  {-b <- tangramsFromPairing images-}
+  {-a <- tangramsFromPairing images-}
+  rollouts <- replicateM (rolloutParameters ^. numPairingAttemptsL) $ tangramsFromPairing images
+  return $ leafs ++ concat rollouts
+  {-return $ leafs ++ a ++ b-}
  where leafs = map Leaf images
 
 imagesToTangram :: (RandomGen g) => Constraints -> [ImageRGBA8] -> Rand g (Maybe Tangram)
