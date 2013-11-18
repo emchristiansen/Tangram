@@ -15,12 +15,15 @@ import Control.Arrow ((&&&))
 --import System.IO
 --import Control.Concurrent (threadDelay)
 --import System.Random
+import Data.Word (Word8)
+import Data.Vector.Storable (Vector)
 
 type ImageRGBA8 = Image PixelRGBA8
 
 instance Show (Image PixelRGBA8) where
   show image = show $ (imageWidth image, imageHeight image)
 
+_properties :: ImageRGBA8 -> (Int, (Int, Vector Word8))
 _properties = imageWidth &&& imageHeight &&& imageData
 
 -- TODO: Surely I don't need this given I have defined Ord below.

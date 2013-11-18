@@ -17,18 +17,18 @@ import Control.Concurrent (threadDelay)
 import Data.Monoid
 import Control.Concurrent.Async
 --import Data.List.Utils
-import Data.List
+{-import Data.List-}
 import Codec.Picture
-import qualified System.Random as R
+{-import qualified System.Random as R-}
 --import qualified Data.Set as Set
 import Text.Printf
-import Data.Tuple
-import qualified Data.Map as M
-import qualified Data.MultiMap as MM
-import Control.Applicative
-import Control.Monad.Memo
-import Data.Function  
-import Control.Arrow ((&&&))
+{-import Data.Tuple-}
+{-import qualified Data.Map as M-}
+{-import qualified Data.MultiMap as MM-}
+{-import Control.Applicative-}
+{-import Control.Monad.Memo-}
+{-import Data.Function  -}
+{-import Control.Arrow ((&&&))-}
 import Control.Lens
 
 import ImageUtil

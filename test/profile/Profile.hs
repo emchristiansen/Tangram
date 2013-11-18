@@ -1,26 +1,27 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Test.QuickCheck
+{-import Test.QuickCheck-}
 import Codec.Picture
-import Control.Applicative
+{-import Control.Applicative-}
 --import ImageIO
-import qualified Data.MultiMap as MM
-import qualified Data.Map as M
-import Control.Monad
-import Control.Monad.Memo
+{-import qualified Data.MultiMap as MM-}
+{-import qualified Data.Map as M-}
+{-import Control.Monad-}
+{-import Control.Monad.Memo-}
 import Control.Monad.Random
 
 import System
-import BruteTangramMaker
+{-import BruteTangramMaker-}
 import RolloutTangramMaker
 
-import TestUtil
+import TestUtil ()
 
-mtwice :: Monad m => (a -> m a) -> (a -> m a)
-mtwice function = \input -> do
-  output <- function input
-  function output
+{-mtwice :: Monad m => (a -> m a) -> (a -> m a)-}
+{-mtwice function = \input -> do-}
+  {-output' <- function input-}
+  {-function output'-}
 
+constraints :: Constraints
 constraints = Constraints (RectangleSize 1000 500) 300 800 1.02 1
 
 main :: IO ()

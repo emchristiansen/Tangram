@@ -3,12 +3,12 @@ module RolloutTangramMaker where
 import Control.Monad.Random
 import Control.Monad
 import Control.Monad.Memo
-import Control.Monad.Loops
-import Control.Arrow ((&&&))
+{-import Control.Monad.Loops-}
+{-import Control.Arrow ((&&&))-}
 import Data.List
 import qualified Data.Map as M
-import Pipes
-import Pipes.Concurrent
+{-import Pipes-}
+{-import Pipes.Concurrent-}
 import Control.Lens
 
 import System

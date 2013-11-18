@@ -57,6 +57,7 @@ library
     repa,
     MonadRandom,
     monad-loops,
+    vector,
     lens
 
 executable Tangram

@@ -1,29 +1,29 @@
 module TangramMakerUtil where
 
 import Control.Monad
-import Data.Maybe
-import Pipes
-import Pipes.Concurrent
-import Control.Concurrent (threadDelay)
-import Data.Monoid
-import Control.Concurrent.Async
+{-import Data.Maybe-}
+{-import Pipes-}
+{-import Pipes.Concurrent-}
+{-import Control.Concurrent (threadDelay)-}
+{-import Data.Monoid-}
+{-import Control.Concurrent.Async-}
 --import Data.List.Utils
 import Data.List
 import Codec.Picture
-import qualified System.Random as R
+{-import qualified System.Random as R-}
 --import qualified Data.Set as Set
-import Text.Printf
+{-import Text.Printf-}
 import Data.Tuple
 import qualified Data.Map as M
 import qualified Data.MultiMap as MM
 import Control.Applicative
 import Control.Monad.Memo
-import Data.Function  
+{-import Data.Function  -}
 import Control.Arrow ((&&&))
 import Control.Lens
 
 import System
-import Util
+{-import Util-}
 import ImageUtil
 
 componentImages :: Tangram -> [ImageRGBA8]
@@ -111,12 +111,12 @@ numSizes tangramSizes = sum counts
 -- That's probably not super easy to understand.
 -- So just think of this as a helper function for `legalTangramSizes`.
 addDimensions :: SizeMap -> SizeMap -> SizeMap
-addDimensions left right = M.fromList $ map (id &&& values) keys
+addDimensions x y = M.fromList $ map (id &&& values) keys
  where
   keys :: [Int]
-  keys = nub $ sort $ intersect (M.keys left) (M.keys right)
-  addPairs left' right' = (fst left' + fst right', snd left' + snd right')
-  values key = addPairs (left M.! key) (right M.! key)
+  keys = nub $ sort $ intersect (M.keys x) (M.keys y)
+  addPairs x' y' = (fst x' + fst y', snd x' + snd y')
+  values key = addPairs (x M.! key) (y M.! key)
 
 --c :: Constraints
 --c = undefined
