@@ -58,6 +58,7 @@ library
     MonadRandom,
     monad-loops,
     vector,
+    deepseq,
     lens
 
 executable Tangram

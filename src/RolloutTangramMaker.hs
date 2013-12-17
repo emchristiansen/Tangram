@@ -10,6 +10,7 @@ import qualified Data.Map as M
 {-import Pipes-}
 {-import Pipes.Concurrent-}
 import Control.Lens
+import Control.DeepSeq
 
 import System
 import ImageUtil
@@ -53,18 +54,36 @@ randomlyPairTangrams tangrams = do
   	else Horizontal leftTangram rightTangram
   return $ newTangram : otherTangrams
 
+-- This version of the function has a space leak arising from Rand.
+-- Use its sister function instead.
+{-_tangramsFromPairing :: RandomGen g => [ImageRGBA8] -> Rand g [Tangram]-}
+{-_tangramsFromPairing [] = return []-}
+{-_tangramsFromPairing [_] = return []-}
+{-_tangramsFromPairing images = do-}
+  {---foo <- return leafs >>= randomlyPairTangrams >>= randomlyPairTangrams-}
+  {-tangrams <- sequence $ iterate (>>= randomlyPairTangrams) $ return leafs-}
+  {---newTangrams <- randomlyPairTangrams leafs-}
+  {-return $ map head $ take numPairs $ tail tangrams-}
+ {-where-}
+  {-leafs = map Leaf images-}
+  {-numPairs = length images - 1-}
+
+
 tangramsFromPairing :: RandomGen g => [ImageRGBA8] -> Rand g [Tangram]
 tangramsFromPairing [] = return []
 tangramsFromPairing [_] = return []
 tangramsFromPairing images = do
+  {-aSeed <- getRandom-}
+  {-let gen = mkStdGen aSeed-}
+  split' <- getSplit
   --foo <- return leafs >>= randomlyPairTangrams >>= randomlyPairTangrams
-  tangrams <- sequence $ iterate (>>= randomlyPairTangrams) $ return leafs
+  let tangramsClosures = sequence $ iterate (>>= randomlyPairTangrams) $ return leafs
+  let tangrams = evalRand tangramsClosures split'
   --newTangrams <- randomlyPairTangrams leafs
   return $ map head $ take numPairs $ tail tangrams
  where
   leafs = map Leaf images
   numPairs = length images - 1
-
 
 --maxImagesInTangram :: Int
 --maxImagesInTangram = 8
@@ -91,24 +110,34 @@ containsWallpaperSize constraints sizes = definedForWidth && heightInRange
   (minHeight, maxHeight) = fromWidth M.! width 
   heightInRange = height >= minHeight && height <= maxHeight
 
-firstLegalTangram :: MonadMemo Tangram TangramSizes m => Constraints -> [Tangram] -> m (Maybe Tangram)
+firstLegalTangram :: MonadMemo Tangram TangramSizes m => 
+                     Constraints -> [Tangram] -> m (Maybe Tangram)
 firstLegalTangram constraints tangrams = do
   sizes <- mapM (memo $ legalTangramSizes constraints) tangrams
-  return $ (liftM fst) $ find (containsWallpaperSize constraints. snd) $ zip tangrams sizes
+  let findCorrectSize = find (containsWallpaperSize constraints . snd)
+  return $ (liftM fst) $ findCorrectSize $ zip tangrams sizes
+
+firstLegalSizedTangram :: MonadMemo Tangram TangramSizes m =>
+                          Constraints -> [Tangram] -> m (Maybe SizedTangram)
+firstLegalSizedTangram constraints tangrams =  
 
 imagesToTangrams :: (RandomGen g) => RolloutParameters -> [ImageRGBA8] -> Rand g [Tangram]
 imagesToTangrams rolloutParameters images = do
+  {-aSeed <- getRandom-}
+  {-let gen = mkStdGen aSeed-}
+  {-a' <- evalRand (tangramsFromPairing images) aSeed-}
   {-b <- tangramsFromPairing images-}
   {-a <- tangramsFromPairing images-}
   rollouts <- replicateM (rolloutParameters ^. numPairingAttemptsL) $ tangramsFromPairing images
   return $ leafs ++ concat rollouts
-  {-return $ leafs ++ a ++ b-}
+  {-return $ leafs ++ a ++ a-}
  where leafs = map Leaf images
 
-imagesToTangram :: (RandomGen g) => Constraints -> [ImageRGBA8] -> Rand g (Maybe Tangram)
-imagesToTangram constraints images = do
-  pairings <- tangramsFromPairing images
-  let tangrams = (map Leaf images) ++ pairings
+imagesToTangram :: (RandomGen g) => Constraints -> RolloutParameters -> [ImageRGBA8] -> Rand g (Maybe Tangram)
+imagesToTangram constraints rolloutParameters images = do
+  {-pairings <- tangramsFromPairing images-}
+  {-let tangrams = (map Leaf images) ++ pairings-}
+  tangrams <- imagesToTangrams rolloutParameters images
   return $ startEvalMemo $ firstLegalTangram constraints $ tangrams
 
 --imagesToTangram :: (RandomGen g) => [ImageRGBA8] -> Rand g (Maybe Tangram)

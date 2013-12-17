@@ -20,7 +20,7 @@ import Control.Monad.Random
 
 import TestUtil
 
-constraints = Constraints (RectangleSize 400 400) 100 800 1.02 1
+constraints = Constraints (RectangleSize 500 500) 100 800 1.02 1
 
 prop_legalCrops :: RectangleSize -> Bool
 prop_legalCrops (RectangleSize width height) = 
@@ -98,24 +98,24 @@ test_tangramsFromPairing = do
   tangrams <- evalRandIO $ tangramsFromPairing images
   mapM_ (putStrLn . show) tangrams
 
-rolloutParameters = RolloutParameters 8 2
+rolloutParameters = RolloutParameters 8 32
 
 test_imagesToTangrams = do
   let pixel = PixelRGBA8 0 0 0 0
   let image = generateImage (\_ _ -> pixel) 300 300
-  let images = take 4 $ repeat image
+  let images = take 8 $ repeat image
   --images <- replicateM 1 $ liftM head $ sample' arbitrary
   tangrams <- evalRandIO $ imagesToTangrams rolloutParameters images
   mapM_ (putStrLn . show) tangrams
 
---test_imagesToTangram = do
---  let pixel = PixelRGBA8 0 0 0 0
---  let image = generateImage (\_ _ -> pixel) 300 300
---  let images = take 4 $ repeat image
---  --images <- replicateM 1 $ liftM head $ sample' arbitrary
---  legalTangramMaybe <- evalRandIO $ imagesToTangram constraints images
---  assertEqual True $ isJust legalTangramMaybe
---  putStrLn $ show $ legalTangramMaybe	
+test_imagesToTangram = do
+  let pixel = PixelRGBA8 0 0 0 0
+  let image = generateImage (\_ _ -> pixel) 300 300
+  let images = take 8 $ repeat image
+  {-images <- replicateM 1 $ liftM head $ sample' arbitrary-}
+  legalTangramMaybe <- evalRandIO $ imagesToTangram constraints rolloutParameters images
+  assertEqual True $ isJust legalTangramMaybe
+  putStrLn $ show $ legalTangramMaybe	
 
 --myReverse :: [a] -> [a]
 --myReverse []     = []

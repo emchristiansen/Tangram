@@ -25,14 +25,15 @@ constraints :: Constraints
 constraints = Constraints (RectangleSize 1000 500) 300 800 1.02 1
 
 main :: IO ()
+main = putStrLn "hi"
 
-main = do
-  let pixel = PixelRGBA8 0 0 0 0
-  let image = generateImage (\_ _ -> pixel) 300 300
-  let images = take 4 $ repeat image
+{-main = do-}
+  {-let pixel = PixelRGBA8 0 0 0 0-}
+  {-let image = generateImage (\_ _ -> pixel) 300 300-}
+  {-let images = take 4 $ repeat image-}
   --images <- replicateM 1 $ liftM head $ sample' arbitrary
-  legalTangramMaybe <- evalRandIO $ imagesToTangram constraints images
-  putStrLn $ show $ legalTangramMaybe
+  {-legalTangramMaybe <- evalRandIO $ imagesToTangram constraints images-}
+  {-putStrLn $ show $ legalTangramMaybe-}
 
 --main = do
 --  images <- replicateM 4 $ liftM head $ sample' arbitrary

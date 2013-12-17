@@ -66,6 +66,11 @@ data Tangram =
   Horizontal Tangram Tangram |
   Leaf ImageRGBA8 deriving (Show, Eq, Ord)
 
+data SizedTangram =
+  SVertical SizedTangram SizedTangram |
+  SHorizontal SizedTangram SizedTangram |
+  SLeaf (Tangram, RectangleSize)
+
 type ImageProducer = Producer ImageRGBA8 IO ()
 
 type ImagePool = Pipe ImageRGBA8 ImageRGBA8 IO ()
