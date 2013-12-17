@@ -100,15 +100,18 @@ makeFields ''RolloutParameters
 --numAttemptsPerPermutation :: Int
 --numAttemptsPerPermutation = 32
 
-containsWallpaperSize :: Constraints -> TangramSizes -> Bool
-containsWallpaperSize constraints sizes = definedForWidth && heightInRange
+canBeSize :: RectangleSize -> TangramSizes -> Bool
+canBeSize rectangleSize sizes = definedForWidth && heightInRange
  where
-  width = constraints ^. wallpaperSizeL ^. widthL
-  height = constraints ^. wallpaperSizeL ^. heightL
+  width = rectangleSize ^. widthL
+  height = rectangleSize ^. heightL
   fromWidth = fst sizes
   definedForWidth = width `M.member` fromWidth
   (minHeight, maxHeight) = fromWidth M.! width 
   heightInRange = height >= minHeight && height <= maxHeight
+  
+containsWallpaperSize :: Constraints -> TangramSizes -> Bool
+containsWallpaperSize constraints = canBeSize constraints ^. wallpaperSizeL
 
 firstLegalTangram :: MonadMemo Tangram TangramSizes m => 
                      Constraints -> [Tangram] -> m (Maybe Tangram)
@@ -117,9 +120,43 @@ firstLegalTangram constraints tangrams = do
   let findCorrectSize = find (containsWallpaperSize constraints . snd)
   return $ (liftM fst) $ findCorrectSize $ zip tangrams sizes
 
+{-canBeSize :: MonadMemo Tangram TangramSizes m =>-}
+             {-Constraints ->-}
+             {-Tangram ->-}
+             {-RectangleSize ->-}
+             {-Bool-}
+{-canBeSize constraints tangram rectangleSize = do-}
+  {-sizes <- (memo $ legalTangramSizes constraints) tangram-}
+
+bestSplit :: MonadMemo Tangram TangramSizes m =>
+             Constraints -> 
+             Tangram -> 
+             RectangleSize -> 
+             (RectangleSize, RectangleSize)
+bestSplit constraints (Vertical top bottom) rootSize = do
+  -- Vertical split sizes in order of goodness (splitting in the
+  -- middle is best).
+  topSizes <- (memo $ legalTangramSizes constraints) top
+  bottomSizes <- (memo $ legalTangramSizes constraints) bottom
+  let desiredSplits = filter legalSplit $ map ((primaryDimension / 2) +) alternating
+  let possibleSplits = filter isPossible desiredSplits
+  let bestSplit = head possibleSplits
+  return (RectangleSize secondaryDimension bestSplit, RectangleSize secondaryDimension (primaryDimension - bestSplit))
+ where
+  primaryDimension = rootSize ^. heightL
+  secondaryDimension = rootSize ^. widthL
+  legalSplit split = split > 0 && split < primaryDimension 
+  alternating = 0 : concatMap (\x -> [x, -x]) [1 ..]
+  isPossible split = 
+    canBeSize (RectangleSize secondaryDimension split) topSizes &&
+      canBeSize (RectangleSize secondaryDimension (primaryDimension - split)) bottomSizes
+
 firstLegalSizedTangram :: MonadMemo Tangram TangramSizes m =>
                           Constraints -> [Tangram] -> m (Maybe SizedTangram)
-firstLegalSizedTangram constraints tangrams =  
+firstLegalSizedTangram constraints tangrams = do
+  maybeFirst <- firstLegalTangram constraints tangrams
+
+
 
 imagesToTangrams :: (RandomGen g) => RolloutParameters -> [ImageRGBA8] -> Rand g [Tangram]
 imagesToTangrams rolloutParameters images = do
