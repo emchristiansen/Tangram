@@ -128,33 +128,33 @@ firstLegalTangram constraints tangrams = do
 {-canBeSize constraints tangram rectangleSize = do-}
   {-sizes <- (memo $ legalTangramSizes constraints) tangram-}
 
-bestSplit :: MonadMemo Tangram TangramSizes m =>
-             Constraints -> 
-             Tangram -> 
-             RectangleSize -> 
-             (RectangleSize, RectangleSize)
-bestSplit constraints (Vertical top bottom) rootSize = do
+{-bestSplit :: MonadMemo Tangram TangramSizes m =>-}
+             {-Constraints -> -}
+             {-Tangram -> -}
+             {-RectangleSize -> -}
+             {-(RectangleSize, RectangleSize)-}
+{-bestSplit constraints (Vertical top bottom) rootSize = do-}
   -- Vertical split sizes in order of goodness (splitting in the
   -- middle is best).
-  topSizes <- (memo $ legalTangramSizes constraints) top
-  bottomSizes <- (memo $ legalTangramSizes constraints) bottom
-  let desiredSplits = filter legalSplit $ map ((primaryDimension / 2) +) alternating
-  let possibleSplits = filter isPossible desiredSplits
-  let bestSplit = head possibleSplits
-  return (RectangleSize secondaryDimension bestSplit, RectangleSize secondaryDimension (primaryDimension - bestSplit))
- where
-  primaryDimension = rootSize ^. heightL
-  secondaryDimension = rootSize ^. widthL
-  legalSplit split = split > 0 && split < primaryDimension 
-  alternating = 0 : concatMap (\x -> [x, -x]) [1 ..]
-  isPossible split = 
-    canBeSize (RectangleSize secondaryDimension split) topSizes &&
-      canBeSize (RectangleSize secondaryDimension (primaryDimension - split)) bottomSizes
+  {-topSizes <- (memo $ legalTangramSizes constraints) top-}
+  {-bottomSizes <- (memo $ legalTangramSizes constraints) bottom-}
+  {-let desiredSplits = filter legalSplit $ map ((primaryDimension / 2) +) alternating-}
+  {-let possibleSplits = filter isPossible desiredSplits-}
+  {-let bestSplit = head possibleSplits-}
+  {-return (RectangleSize secondaryDimension bestSplit, RectangleSize secondaryDimension (primaryDimension - bestSplit))-}
+ {-where-}
+  {-primaryDimension = rootSize ^. heightL-}
+  {-secondaryDimension = rootSize ^. widthL-}
+  {-legalSplit split = split > 0 && split < primaryDimension -}
+  {-alternating = 0 : concatMap (\x -> [x, -x]) [1 ..]-}
+  {-isPossible split = -}
+    {-canBeSize (RectangleSize secondaryDimension split) topSizes &&-}
+      {-canBeSize (RectangleSize secondaryDimension (primaryDimension - split)) bottomSizes-}
 
-firstLegalSizedTangram :: MonadMemo Tangram TangramSizes m =>
-                          Constraints -> [Tangram] -> m (Maybe SizedTangram)
-firstLegalSizedTangram constraints tangrams = do
-  maybeFirst <- firstLegalTangram constraints tangrams
+{-firstLegalSizedTangram :: MonadMemo Tangram TangramSizes m =>-}
+                          {-Constraints -> [Tangram] -> m (Maybe SizedTangram)-}
+{-firstLegalSizedTangram constraints tangrams = do-}
+  {-maybeFirst <- firstLegalTangram constraints tangrams-}
 
 
 
