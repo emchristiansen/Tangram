@@ -50,7 +50,6 @@ library
     random,
     JuicyPixels,
     bytestring,
-    repa-devil,
     containers,
     multimap,
     monad-memo,
@@ -91,7 +90,6 @@ executable Tangram
     random,
     JuicyPixels,
     bytestring,
-    repa-devil,
     containers,
     multimap,
     repa
@@ -128,7 +126,6 @@ executable Profile
     random,
     JuicyPixels,
     bytestring,
-    repa-devil,
     containers,
     multimap,
     repa,
