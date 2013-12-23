@@ -1,2 +1,3 @@
+module SizedTangram where
 
-type SizedTangram = BinaryTree2D (Sized ImageRGBA8)
+type SizedTangram = Tree (Sized ImageRGBA8)

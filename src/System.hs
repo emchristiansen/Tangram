@@ -41,6 +41,12 @@ import ImagePool
 import TangramMaker
 import DisplaySetter
 
+takeLeftPipe :: Pipe (Either a b) a IO ()
+takeLeftPipe = P.map (\x -> lefts [x]) >-> P.concat
+
+takeRightPipe :: Pipe (Either a b) b IO ()
+takeRightPipe = P.map (\x -> rights [x]) >-> P.concat
+
 data System = System {
   _systemImageProducerL :: ImageProducer,
   _systemImagePoolL :: ImagePool,
