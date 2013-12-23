@@ -11,5 +11,5 @@ import Tree
 import ImageRGBA8
 import Util
 
-type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 SizedTangram) IO ()
+type TangramMaker = Pipe ImageRGBA8 (Either ImageRGBA8 Tangram) IO ()
 
