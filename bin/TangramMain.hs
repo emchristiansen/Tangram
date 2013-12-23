@@ -20,6 +20,10 @@ import System
 --import qualified Data.MultiMap as MM
 --import Control.Applicative
 
+import ImageProducer
+import ImagePool
+import TangramMaker
+
 main :: IO ()
 main = do  
   let imageProducer = directoryImageProducer "/home/eric/Bitcasa/data/fractals" []

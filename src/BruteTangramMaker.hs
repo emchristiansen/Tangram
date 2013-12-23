@@ -21,17 +21,22 @@ import Control.Monad.Memo
 {-import Data.Function  -}
 {-import Control.Arrow ((&&&))-}
 
-import System
-import TangramMakerUtil
-{-import Util-}
+import Tangram
+import ImageRGBA8
+import Axis
+import Tree
 import ImageUtil
+import TangramMakerUtil
+import Size
+import Constraints
 
 -- All new consistent tangrams which can be produced by combining pairs of
 -- existing tangrams.
-pairTangrams :: MonadMemo Tangram TangramSizes m => Constraints -> [Tangram] -> m [Tangram]
+pairTangrams :: MonadMemo Tangram TangramSizes m => 
+                Constraints -> [Tangram] -> m [Tangram]
 pairTangrams constraints components = do
   let pairs = filter (uncurry (<)) $ (,) <$> components <*> components
-  let combinations = [uncurry Vertical, uncurry Horizontal] <*> pairs :: [Tangram]
+  let combinations = [uncurry (Node Vertical), uncurry (Node Horizontal)] <*> pairs :: [Tangram]
   filterM consistent $ filter noDuplicates $ filter novel combinations
  where
   novel :: Tangram -> Bool

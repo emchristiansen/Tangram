@@ -22,14 +22,17 @@ import Control.Monad.Memo
 import Control.Arrow ((&&&))
 import Control.Lens
 
-import System
-{-import Util-}
+import Tangram
+import ImageRGBA8
+import Axis
+import Tree
+import Constraints
 import ImageUtil
 
 componentImages :: Tangram -> [ImageRGBA8]
-componentImages (Vertical top bottom) = 
+componentImages (Node Vertical top bottom) = 
   (componentImages top) ++ (componentImages bottom)
-componentImages (Horizontal left right) = 
+componentImages (Node Horizontal left right) = 
   (componentImages left) ++ (componentImages right)  
 componentImages (Leaf image) = [image]	
 
@@ -134,14 +137,14 @@ legalTangramSizes constraints (Leaf image) = return $ mkTangramSizes $ map addBo
   --sizes = (legalImageSizes constraints) (imageWidth image) (imageHeight image)
   sizes = legalImageSizes constraints (imageWidth image) (imageHeight image)
 
-legalTangramSizes constraints (Vertical top bottom) = do
+legalTangramSizes constraints (Node Vertical top bottom) = do
   topByWidth <- liftM fst $ memo legalTangramSizes' top
   bottomByWidth <- liftM fst $ memo legalTangramSizes' bottom
   let sizesByWidth = addDimensions topByWidth bottomByWidth
   return $ (sizesByWidth, flipSizes sizesByWidth)
  where legalTangramSizes' = legalTangramSizes constraints
 
-legalTangramSizes constraints (Horizontal left right) = do
+legalTangramSizes constraints (Node Horizontal left right) = do
   leftByHeight <- liftM snd $ memo legalTangramSizes' left
   rightByHeight <- liftM snd $ memo legalTangramSizes' right
   let sizesByHeight = addDimensions leftByHeight rightByHeight

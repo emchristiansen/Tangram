@@ -18,20 +18,7 @@ import Control.Arrow ((&&&))
 import Data.Word (Word8)
 import Data.Vector.Storable (Vector)
 
-type ImageRGBA8 = Image PixelRGBA8
-
-instance Show (Image PixelRGBA8) where
-  show image = show $ (imageWidth image, imageHeight image)
-
-_properties :: ImageRGBA8 -> (Int, (Int, Vector Word8))
-_properties = imageWidth &&& imageHeight &&& imageData
-
--- TODO: Surely I don't need this given I have defined Ord below.
-instance Eq (Image PixelRGBA8) where
-  left == right = _properties left == _properties right
-
-instance Ord (Image PixelRGBA8) where
-  left `compare` right = _properties left `compare` _properties right
+import ImageRGBA8
 
 -- Checks if a filename is an image filename for some standard extensions.
 isImageFilename :: FilePath -> Bool

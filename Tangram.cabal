@@ -62,7 +62,7 @@ library
 
 executable Tangram
   hs-source-dirs: bin
-  main-is: Tangram.hs
+  main-is: TangramMain.hs
 
   ghc-options: -Wall -auto-all -caf-all -threaded 
   -- -fllvm

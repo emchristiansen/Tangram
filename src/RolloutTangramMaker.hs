@@ -12,9 +12,14 @@ import qualified Data.Map as M
 import Control.Lens
 import Control.DeepSeq
 
-import System
+import Tangram
+import ImageRGBA8
+import Axis
+import Tree
 import ImageUtil
 import TangramMakerUtil
+import Size
+import Constraints
 
 -- A monadic version of scanl.
 -- Probably not the most efficient implementation.
@@ -29,8 +34,8 @@ scanlM function start values = foldM function' [start] values
 addToTangram :: (RandomGen g) => Tangram -> ImageRGBA8 -> Rand g Tangram
 addToTangram tangram image = do
   switch <- getRandom
-  return $ if switch then Vertical tangram (Leaf image)
-  	else Horizontal tangram (Leaf image)
+  return $ if switch then Node Vertical tangram (Leaf image)
+  	else Node Horizontal tangram (Leaf image)
 
 scanlTangrams :: (RandomGen g) => [ImageRGBA8] -> Rand g [Tangram]
 scanlTangrams [] = return []
@@ -50,8 +55,8 @@ randomlyPairTangrams [_] = return []
 randomlyPairTangrams tangrams = do
   leftTangram : rightTangram : otherTangrams <- shuffle tangrams
   switch <- getRandom
-  let newTangram = if switch then Vertical leftTangram rightTangram
-  	else Horizontal leftTangram rightTangram
+  let newTangram = if switch then Node Vertical leftTangram rightTangram
+  	else Node Horizontal leftTangram rightTangram
   return $ newTangram : otherTangrams
 
 -- This version of the function has a space leak arising from Rand.
@@ -100,7 +105,7 @@ makeFields ''RolloutParameters
 --numAttemptsPerPermutation :: Int
 --numAttemptsPerPermutation = 32
 
-canBeSize :: RectangleSize -> TangramSizes -> Bool
+canBeSize :: Size -> TangramSizes -> Bool
 canBeSize rectangleSize sizes = definedForWidth && heightInRange
  where
   width = rectangleSize ^. widthL
@@ -111,7 +116,7 @@ canBeSize rectangleSize sizes = definedForWidth && heightInRange
   heightInRange = height >= minHeight && height <= maxHeight
   
 containsWallpaperSize :: Constraints -> TangramSizes -> Bool
-containsWallpaperSize constraints = canBeSize constraints ^. wallpaperSizeL
+containsWallpaperSize constraints = canBeSize (constraints ^. wallpaperSizeL)
 
 firstLegalTangram :: MonadMemo Tangram TangramSizes m => 
                      Constraints -> [Tangram] -> m (Maybe Tangram)
